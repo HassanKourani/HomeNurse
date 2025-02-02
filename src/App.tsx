@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { Layout, Button, Typography, Space, Spin } from "antd";
 import styled from "styled-components";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./utils/AuthContext";
 import AuthForm from "./components/Auth/AuthForm";
+import LandingForm from "./components/Landing/LandingForm";
+import SignupPage from "./pages/SignupPage";
 import "./App.css";
 
 const { Header, Content } = Layout;
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const StyledLayout = styled(Layout)`
-  min-height: 100vh;
+  min-height: 100%;
 `;
 
 const StyledHeader = styled(Header)`
@@ -48,7 +51,7 @@ function AuthenticatedApp() {
     <StyledLayout>
       <StyledHeader>
         <Title level={4} style={{ margin: 0 }}>
-          HomeNurse
+          Home Nurse
         </Title>
         <Button type="link" danger onClick={() => signOut()}>
           Sign Out
@@ -63,32 +66,41 @@ function AuthenticatedApp() {
 }
 
 function UnauthenticatedApp() {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [showSignIn, setShowSignIn] = useState(false);
 
   return (
     <StyledLayout>
+      <StyledHeader>
+        <Title level={4} style={{ margin: 0 }}>
+          Home Nurse
+        </Title>
+        {!showSignIn && (
+          <Button type="primary" onClick={() => setShowSignIn(true)}>
+            Sign In
+          </Button>
+        )}
+      </StyledHeader>
       <StyledContent>
         <CenteredContent>
-          <Title level={2} style={{ textAlign: "center", marginBottom: 32 }}>
-            HomeNurse
-          </Title>
-          <AuthForm mode={mode} />
-          <Space
-            direction="horizontal"
-            style={{ width: "100%", justifyContent: "center", marginTop: 16 }}
-          >
-            <Text type="secondary">
-              {mode === "signin"
-                ? "Don't have an account? "
-                : "Already have an account? "}
-            </Text>
-            <Button
-              type="link"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            >
-              {mode === "signin" ? "Sign Up" : "Sign In"}
-            </Button>
-          </Space>
+          {showSignIn ? (
+            <>
+              <AuthForm mode="signin" />
+              <Space
+                direction="horizontal"
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  marginTop: 16,
+                }}
+              >
+                <Button type="link" onClick={() => setShowSignIn(false)}>
+                  Back to Home
+                </Button>
+              </Space>
+            </>
+          ) : (
+            <LandingForm />
+          )}
         </CenteredContent>
       </StyledContent>
     </StyledLayout>
@@ -112,7 +124,12 @@ function App() {
 function AppWithProvider() {
   return (
     <AuthProvider>
-      <App />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/*" element={<App />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
 }
