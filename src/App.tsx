@@ -51,7 +51,7 @@ function AuthenticatedApp() {
     <StyledLayout>
       <StyledHeader>
         <Title level={4} style={{ margin: 0 }}>
-          Home Nurse
+          Medical Care Home Services
         </Title>
         <Button type="link" danger onClick={() => signOut()}>
           Sign Out
@@ -72,7 +72,7 @@ function UnauthenticatedApp() {
     <StyledLayout>
       <StyledHeader>
         <Title level={4} style={{ margin: 0 }}>
-          Home Nurse
+          Medical Care Home Services
         </Title>
         {!showSignIn && (
           <Button type="primary" onClick={() => setShowSignIn(true)}>
