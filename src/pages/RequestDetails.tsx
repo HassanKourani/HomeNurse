@@ -18,6 +18,7 @@ import {
   EditOutlined,
   SaveOutlined,
   CloseOutlined,
+  CheckOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../utils/AuthContext";
 
@@ -40,6 +41,7 @@ type RequestDetails = {
   status: "pending" | "accepted" | "completed" | "cancelled";
   created_at: string;
   price: number | null;
+  assigned_nurse_id: string | null;
   patient: {
     full_name: string;
     phone_number: string;
@@ -269,6 +271,8 @@ export default function RequestDetails() {
   const [editingPrice, setEditingPrice] = useState(false);
   const [newPrice, setNewPrice] = useState<string>("");
   const [savingPrice, setSavingPrice] = useState(false);
+  const [approvingRequest, setApprovingRequest] = useState(false);
+  const [cancellingRequest, setCancellingRequest] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -311,38 +315,55 @@ export default function RequestDetails() {
               phone_number,
               location,
               area
-            ),
-            assigned_nurse:profiles!assigned_nurse_id (
-              full_name,
-              phone_number
             )
           `
           )
           .eq("id", parseInt(id))
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching request details:", error);
+          message.error("Failed to fetch request details");
+          if (error.code === "PGRST116") {
+            // Record not found
+            navigate("/");
+          }
+          return;
+        }
 
-        if (data) {
+        if (data && data.assigned_nurse_id) {
+          // Fetch nurse details separately
+          const { data: nurseData, error: nurseError } = await supabase
+            .from("profiles")
+            .select("full_name, phone_number")
+            .eq("id", data.assigned_nurse_id)
+            .single();
+
+          if (nurseError) {
+            console.error("Error fetching nurse details:", nurseError);
+          }
+
           const transformedData = {
             ...data,
             patient: data.patient,
-            assigned_nurse:
-              data.assigned_nurse && data.assigned_nurse.length > 0
-                ? {
-                    full_name: data.assigned_nurse[0].full_name,
-                    phone_number: data.assigned_nurse[0].phone_number,
-                  }
-                : null,
+            assigned_nurse: nurseData || null,
+          } as unknown as RequestDetails;
+
+          setRequest(transformedData);
+          setNewPrice(data.price?.toString() || "");
+        } else if (data) {
+          const transformedData = {
+            ...data,
+            patient: data.patient,
+            assigned_nurse: null,
           } as unknown as RequestDetails;
 
           setRequest(transformedData);
           setNewPrice(data.price?.toString() || "");
         }
       } catch (error) {
-        console.error("Error fetching request details:", error);
-        message.error("Failed to fetch request details");
-        navigate("/");
+        console.error("Error in request details:", error);
+        message.error("An unexpected error occurred");
       } finally {
         setLoading(false);
       }
@@ -381,7 +402,99 @@ export default function RequestDetails() {
     }
   };
 
-  const canEditPrice = userRole === "nurse" || userRole === "superAdmin";
+  const handleApproveRequest = async () => {
+    if (!id || !user?.id) return;
+
+    try {
+      setApprovingRequest(true);
+      const { error } = await supabase.rpc("approve_request", {
+        request_id: parseInt(id),
+      });
+
+      if (error) {
+        console.error("Error approving request:", error);
+        message.error("Failed to approve request");
+        return;
+      }
+
+      // Fetch nurse details from profiles
+      const { data: nurseData, error: nurseError } = await supabase
+        .from("profiles")
+        .select("full_name, phone_number")
+        .eq("id", user.id)
+        .single();
+
+      if (nurseError) {
+        console.error("Error fetching nurse details:", nurseError);
+        message.error("Failed to fetch nurse details");
+        return;
+      }
+
+      // Update local state with both assigned_nurse_id and status
+      setRequest((prev) =>
+        prev
+          ? {
+              ...prev,
+              assigned_nurse_id: user.id,
+              status: "accepted",
+              assigned_nurse: nurseData,
+            }
+          : null
+      );
+      message.success("Request approved successfully");
+    } catch (error) {
+      console.error("Error approving request:", error);
+      message.error("Failed to approve request");
+    } finally {
+      setApprovingRequest(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    if (!id) return;
+
+    try {
+      setCancellingRequest(true);
+      const { error } = await supabase.rpc("cancel_request", {
+        request_id: parseInt(id),
+      });
+
+      if (error) {
+        console.error("Error cancelling request:", error);
+        message.error("Failed to cancel request");
+        return;
+      }
+
+      // Update local state
+      setRequest((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "cancelled",
+            }
+          : null
+      );
+      message.success("Request cancelled successfully");
+    } catch (error) {
+      console.error("Error cancelling request:", error);
+      message.error("Failed to cancel request");
+    } finally {
+      setCancellingRequest(false);
+    }
+  };
+
+  const canEditPrice =
+    userRole !== "patient" && request?.assigned_nurse_id === user?.id;
+
+  const canApproveRequest =
+    userRole !== "patient" &&
+    !request?.assigned_nurse_id &&
+    request?.status === "pending";
+
+  const canCancelRequest =
+    request?.status === "accepted" &&
+    (userRole === "superAdmin" ||
+      (userRole !== "patient" && request?.assigned_nurse_id === user?.id));
 
   if (loading) {
     return (
@@ -434,6 +547,30 @@ export default function RequestDetails() {
           title="Request Information"
           bordered
           column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}
+          extra={
+            <>
+              {canApproveRequest && (
+                <Button
+                  type="primary"
+                  onClick={handleApproveRequest}
+                  loading={approvingRequest}
+                  icon={<CheckOutlined />}
+                >
+                  Approve Request
+                </Button>
+              )}
+              {canCancelRequest && (
+                <Button
+                  danger
+                  onClick={handleCancelRequest}
+                  loading={cancellingRequest}
+                  style={{ marginLeft: 8 }}
+                >
+                  Cancel Request
+                </Button>
+              )}
+            </>
+          }
         >
           <Descriptions.Item label="Service Type">
             <Tag color={getServiceTypeColor(request.service_type)}>
