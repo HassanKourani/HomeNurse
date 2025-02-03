@@ -19,6 +19,7 @@ import "./App.css";
 import RegularCareRequests from "./pages/RegularCareRequests";
 import PsychiatricCareRequests from "./pages/PsychiatricCareRequests";
 import QuickServiceRequests from "./pages/QuickServiceRequests";
+import MyAssignments from "./pages/MyAssignments";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -627,6 +628,7 @@ function AppWithProvider() {
             element={<PsychiatricCareRequests />}
           />
           <Route path="/quick-requests" element={<QuickServiceRequests />} />
+          <Route path="/my-assignments" element={<MyAssignments />} />
           <Route path="/*" element={<App />} />
         </Routes>
       </BrowserRouter>
