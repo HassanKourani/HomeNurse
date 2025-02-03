@@ -16,7 +16,7 @@ import {
 import { UploadOutlined, CheckCircleFilled } from "@ant-design/icons";
 import type { UploadChangeParam, UploadFile } from "antd/es/upload";
 import styled from "styled-components";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import supabase from "../../utils/supabase";
 
 const { TextArea } = Input;
@@ -434,163 +434,152 @@ export default function LandingForm() {
     setCurrentStep(0);
   };
 
-  const renderFormStep = (step: number) => {
-    switch (step) {
-      case 0:
-        return (
-          <motion.div
-            key="step0"
-            custom={direction}
-            variants={stepVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30,
-            }}
+  const renderFormStep = () => {
+    const steps = [
+      <motion.div
+        key="step0"
+        custom={direction}
+        variants={stepVariants}
+        initial="enter"
+        animate={currentStep === 0 ? "center" : "exit"}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 30,
+        }}
+        style={{ display: currentStep === 0 ? "block" : "none" }}
+      >
+        <Form.Item
+          label="Full Name"
+          name="full_name"
+          rules={[{ required: true, message: "Please input your full name!" }]}
+        >
+          <Input placeholder="Enter your full name" />
+        </Form.Item>
+
+        <Form.Item
+          label="Phone Number"
+          name="phone_number"
+          rules={[
+            { required: true, message: "Please input your phone number!" },
+            {
+              pattern: /^\+?[1-9]\d{1,14}$/,
+              message: "Please enter a valid phone number!",
+            },
+          ]}
+        >
+          <Input placeholder="Enter your phone number" />
+        </Form.Item>
+      </motion.div>,
+
+      <motion.div
+        key="step1"
+        custom={direction}
+        variants={stepVariants}
+        initial="enter"
+        animate={currentStep === 1 ? "center" : "exit"}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 30,
+        }}
+        style={{ display: currentStep === 1 ? "block" : "none" }}
+      >
+        <Form.Item
+          label="Area"
+          name="area"
+          rules={[{ required: true, message: "Please select your area!" }]}
+        >
+          <Select placeholder="Select your area">
+            {(Object.entries(AREA_LABELS) as [Area, string][]).map(
+              ([value, label]) => (
+                <Select.Option
+                  key={value}
+                  value={value}
+                  disabled={!ENABLED_AREAS.includes(value)}
+                >
+                  {label}
+                </Select.Option>
+              )
+            )}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Location Details"
+          name="location"
+          rules={[
+            {
+              required: true,
+              message: "Please provide your location details!",
+            },
+          ]}
+        >
+          <TextArea
+            rows={2}
+            placeholder="Please provide detailed address (building, street, nearby landmarks)"
+          />
+        </Form.Item>
+      </motion.div>,
+
+      <motion.div
+        key="step2"
+        custom={direction}
+        variants={stepVariants}
+        initial="enter"
+        animate={currentStep === 2 ? "center" : "exit"}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 30,
+        }}
+        style={{ display: currentStep === 2 ? "block" : "none" }}
+      >
+        <Form.Item
+          label="Service Type"
+          name="service_type"
+          rules={[{ required: true, message: "Please select a service type!" }]}
+        >
+          <Select placeholder="Select the type of service you need">
+            {(
+              Object.entries(SERVICE_TYPE_LABELS) as [ServiceType, string][]
+            ).map(([value, label]) => (
+              <Select.Option key={value} value={value}>
+                {label}
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Details"
+          name="details"
+          rules={[
+            {
+              required: true,
+              message: "Please provide details about your needs!",
+            },
+          ]}
+        >
+          <TextArea
+            rows={4}
+            placeholder="Please describe your needs and any relevant medical conditions"
+          />
+        </Form.Item>
+
+        <Form.Item label="Supporting Document (Optional)">
+          <Upload
+            maxCount={1}
+            beforeUpload={() => false}
+            onChange={handleImageChange}
           >
-            <Form.Item
-              label="Full Name"
-              name="full_name"
-              rules={[
-                { required: true, message: "Please input your full name!" },
-              ]}
-            >
-              <Input placeholder="Enter your full name" />
-            </Form.Item>
+            <Button icon={<UploadOutlined />}>Click to Upload</Button>
+          </Upload>
+        </Form.Item>
+      </motion.div>,
+    ];
 
-            <Form.Item
-              label="Phone Number"
-              name="phone_number"
-              rules={[
-                { required: true, message: "Please input your phone number!" },
-                {
-                  pattern: /^\+?[1-9]\d{1,14}$/,
-                  message: "Please enter a valid phone number!",
-                },
-              ]}
-            >
-              <Input placeholder="Enter your phone number" />
-            </Form.Item>
-          </motion.div>
-        );
-      case 1:
-        return (
-          <motion.div
-            key="step1"
-            custom={direction}
-            variants={stepVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30,
-            }}
-          >
-            <Form.Item
-              label="Area"
-              name="area"
-              rules={[{ required: true, message: "Please select your area!" }]}
-            >
-              <Select placeholder="Select your area">
-                {(Object.entries(AREA_LABELS) as [Area, string][]).map(
-                  ([value, label]) => (
-                    <Select.Option
-                      key={value}
-                      value={value}
-                      disabled={!ENABLED_AREAS.includes(value)}
-                    >
-                      {label}
-                    </Select.Option>
-                  )
-                )}
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              label="Location Details"
-              name="location"
-              rules={[
-                {
-                  required: true,
-                  message: "Please provide your location details!",
-                },
-              ]}
-            >
-              <TextArea
-                rows={2}
-                placeholder="Please provide detailed address (building, street, nearby landmarks)"
-              />
-            </Form.Item>
-          </motion.div>
-        );
-      case 2:
-        return (
-          <motion.div
-            key="step2"
-            custom={direction}
-            variants={stepVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30,
-            }}
-          >
-            <Form.Item
-              label="Service Type"
-              name="service_type"
-              rules={[
-                { required: true, message: "Please select a service type!" },
-              ]}
-            >
-              <Select placeholder="Select the type of service you need">
-                {(
-                  Object.entries(SERVICE_TYPE_LABELS) as [ServiceType, string][]
-                ).map(([value, label]) => (
-                  <Select.Option key={value} value={value}>
-                    {label}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              label="Details"
-              name="details"
-              rules={[
-                {
-                  required: true,
-                  message: "Please provide details about your needs!",
-                },
-              ]}
-            >
-              <TextArea
-                rows={4}
-                placeholder="Please describe your needs and any relevant medical conditions"
-              />
-            </Form.Item>
-
-            <Form.Item label="Supporting Document (Optional)">
-              <Upload
-                maxCount={1}
-                beforeUpload={() => false}
-                onChange={handleImageChange}
-              >
-                <Button icon={<UploadOutlined />}>Click to Upload</Button>
-              </Upload>
-            </Form.Item>
-          </motion.div>
-        );
-      default:
-        return null;
-    }
+    return steps;
   };
 
   return (
@@ -711,9 +700,7 @@ export default function LandingForm() {
                 onFinish={handleSubmit}
                 autoComplete="off"
               >
-                <AnimatePresence mode="wait" custom={direction}>
-                  {renderFormStep(currentStep)}
-                </AnimatePresence>
+                <div>{renderFormStep()}</div>
 
                 <Form.Item>
                   <Space
@@ -763,10 +750,20 @@ export default function LandingForm() {
             title="Request Submitted Successfully!"
             subTitle="One of our professional nurses will contact you soon to discuss your request and provide personalized care options."
             extra={[
-              <Button key="check" type="primary" size="large">
+              <Button
+                key="check"
+                type="primary"
+                size="large"
+                style={{ marginBottom: 10, width: "100%" }}
+              >
                 Track Request Status
               </Button>,
-              <Button key="back" size="large" onClick={handleModalClose}>
+              <Button
+                key="back"
+                size="large"
+                onClick={handleModalClose}
+                style={{ width: "100%" }}
+              >
                 Return to Home
               </Button>,
             ]}
