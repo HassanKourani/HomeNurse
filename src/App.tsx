@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import supabase from "./utils/supabase";
 import "./App.css";
 import RegularCareRequests from "./pages/RegularCareRequests";
+import PsychiatricCareRequests from "./pages/PsychiatricCareRequests";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -619,6 +620,10 @@ function AppWithProvider() {
           <Route
             path="/regular-care-requests"
             element={<RegularCareRequests />}
+          />
+          <Route
+            path="/psychiatric-requests"
+            element={<PsychiatricCareRequests />}
           />
           <Route path="/*" element={<App />} />
         </Routes>
