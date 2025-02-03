@@ -20,6 +20,14 @@ import RegularCareRequests from "./pages/RegularCareRequests";
 import PsychiatricCareRequests from "./pages/PsychiatricCareRequests";
 import QuickServiceRequests from "./pages/QuickServiceRequests";
 import MyAssignments from "./pages/MyAssignments";
+import {
+  LogoutOutlined,
+  TeamOutlined,
+  UserAddOutlined,
+  LoginOutlined,
+  MailOutlined,
+  HomeOutlined,
+} from "@ant-design/icons";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -77,6 +85,10 @@ const StyledHeader = styled(Header)`
     display: flex;
     align-items: center;
     gap: 16px;
+
+    .nav-icon {
+      font-size: 16px;
+    }
   }
 
   .ant-btn {
@@ -122,30 +134,89 @@ const StyledHeader = styled(Header)`
 
   @media (max-width: 768px) {
     height: 64px;
+    min-height: 64px;
+    padding: 0;
 
     .header-content {
-      padding: 0 16px;
+      height: 100%;
+      padding: 0 12px;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .logo-section {
+      width: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
       .logo {
-        display: none;
+        font-size: 20px;
       }
 
       h4.ant-typography {
         font-size: 16px;
-        &::after {
-          content: "Medical Care";
-        }
+        margin: 0;
+
         span {
-          display: none;
+          display: block;
         }
       }
     }
 
-    .ant-btn {
-      padding: 0 16px;
-      font-size: 14px;
+    .nav-actions {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 4px;
+
+      .ant-btn {
+        min-width: 40px;
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .nav-icon {
+          margin: 0;
+          font-size: 18px;
+        }
+
+        .btn-text {
+          display: none;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .logo-section {
+      gap: 6px;
+
+      .logo {
+        font-size: 18px;
+      }
+
+      h4.ant-typography {
+        font-size: 14px;
+      }
+    }
+
+    .nav-actions {
+      gap: 2px;
+
+      .ant-btn {
+        min-width: 36px;
+        width: 36px;
+        height: 36px;
+
+        .nav-icon {
+          font-size: 16px;
+        }
+      }
     }
   }
 `;
@@ -443,7 +514,7 @@ function AuthenticatedApp() {
           >
             <span className="logo">👨‍⚕️</span>
             <Title level={4}>
-              <span>Home Services</span>
+              <span>Medical Care</span>
             </Title>
           </motion.div>
           <motion.div
@@ -454,16 +525,29 @@ function AuthenticatedApp() {
           >
             {isSuperAdmin && (
               <>
-                <Button type="text" onClick={() => navigate("/nurses")}>
-                  Manage Nurses
+                <Button
+                  type="text"
+                  onClick={() => navigate("/nurses")}
+                  icon={<TeamOutlined className="nav-icon" />}
+                >
+                  <span className="btn-text">Manage Nurses</span>
                 </Button>
-                <Button type="text" onClick={() => navigate("/signup")}>
-                  Add Nurse
+                <Button
+                  type="text"
+                  onClick={() => navigate("/signup")}
+                  icon={<UserAddOutlined className="nav-icon" />}
+                >
+                  <span className="btn-text">Add Nurse</span>
                 </Button>
               </>
             )}
-            <Button type="primary" danger onClick={() => signOut()}>
-              Sign Out
+            <Button
+              type="primary"
+              danger
+              onClick={() => signOut()}
+              icon={<LogoutOutlined className="nav-icon" />}
+            >
+              <span className="btn-text">Sign Out</span>
             </Button>
           </motion.div>
         </div>
@@ -532,21 +616,30 @@ function UnauthenticatedApp() {
           >
             {!showSignIn ? (
               <>
-                <Button type="text" onClick={() => setShowSignIn(true)}>
-                  Sign In
+                <Button
+                  type="text"
+                  onClick={() => setShowSignIn(true)}
+                  icon={<LoginOutlined className="nav-icon" />}
+                >
+                  <span className="btn-text">Sign In</span>
                 </Button>
                 <Button
                   type="primary"
                   onClick={() =>
                     (window.location.href = "mailto:support@medicalcare.com")
                   }
+                  icon={<MailOutlined className="nav-icon" />}
                 >
-                  Contact Support
+                  <span className="btn-text">Contact Support</span>
                 </Button>
               </>
             ) : (
-              <Button type="text" onClick={() => setShowSignIn(false)}>
-                Back to Home
+              <Button
+                type="text"
+                onClick={() => setShowSignIn(false)}
+                icon={<HomeOutlined className="nav-icon" />}
+              >
+                <span className="btn-text">Back to Home</span>
               </Button>
             )}
           </motion.div>

@@ -257,6 +257,7 @@ export default function PsychiatricCareRequests() {
             "full_time_private_psychiatric",
             "part_time_private_psychiatric",
           ])
+          .is("assigned_nurse_id", null)
           .order("created_at", { ascending: false });
 
         if (error) throw error;

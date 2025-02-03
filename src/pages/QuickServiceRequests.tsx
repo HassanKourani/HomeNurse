@@ -269,6 +269,7 @@ export default function QuickServiceRequests() {
             "hemo_vs",
             "other",
           ])
+          .is("assigned_nurse_id", null)
           .order("created_at", { ascending: false });
 
         if (error) throw error;
