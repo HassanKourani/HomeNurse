@@ -364,7 +364,7 @@ export default function QuickServiceRequests() {
         <Button
           type="link"
           icon={<EyeOutlined />}
-          onClick={() => console.log("View details:", record.id)}
+          onClick={() => navigate(`/request/${record.id}`)}
         >
           View Details
         </Button>
@@ -410,7 +410,7 @@ export default function QuickServiceRequests() {
         <Button
           type="link"
           icon={<EyeOutlined />}
-          onClick={() => console.log("View details:", request.id)}
+          onClick={() => navigate(`/request/${request.id}`)}
         >
           View Details
         </Button>

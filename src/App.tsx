@@ -20,6 +20,7 @@ import RegularCareRequests from "./pages/RegularCareRequests";
 import PsychiatricCareRequests from "./pages/PsychiatricCareRequests";
 import QuickServiceRequests from "./pages/QuickServiceRequests";
 import MyAssignments from "./pages/MyAssignments";
+import RequestDetails from "./pages/RequestDetails";
 import {
   LogoutOutlined,
   TeamOutlined,
@@ -722,6 +723,7 @@ function AppWithProvider() {
           />
           <Route path="/quick-requests" element={<QuickServiceRequests />} />
           <Route path="/my-assignments" element={<MyAssignments />} />
+          <Route path="/request/:id" element={<RequestDetails />} />
           <Route path="/*" element={<App />} />
         </Routes>
       </BrowserRouter>
