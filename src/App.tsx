@@ -266,6 +266,87 @@ const fadeIn = {
   transition: { duration: 0.5 },
 };
 
+const DashboardGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding: 32px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    padding: 24px 16px;
+  }
+`;
+
+const ServiceCard = styled(motion.div)`
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .emoji {
+    font-size: 48px;
+    margin-bottom: 8px;
+  }
+
+  .title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a3d7c;
+    margin: 0;
+  }
+
+  .description {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+    flex-grow: 1;
+  }
+
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .stat-item {
+    background: rgba(24, 144, 255, 0.05);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .value {
+      font-weight: 600;
+      color: #1a3d7c;
+    }
+
+    .label {
+      color: #666;
+      font-size: 12px;
+    }
+  }
+`;
+
 function AuthenticatedApp() {
   const { user, signOut } = useAuth();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -284,6 +365,66 @@ function AuthenticatedApp() {
 
     checkRole();
   }, [user]);
+
+  const serviceCards = [
+    {
+      emoji: "🏥",
+      title: "Regular Care Requests",
+      description:
+        "View and manage regular care requests including full-time and part-time nursing care assignments.",
+      stats: [
+        { value: "12", label: "New Requests" },
+        { value: "5", label: "Pending" },
+        { value: "3", label: "Urgent" },
+      ],
+      onClick: () => navigate("/regular-care-requests"),
+    },
+    {
+      emoji: "🧠",
+      title: "Psychiatric Care Requests",
+      description:
+        "Access psychiatric care assignments and mental health support requests from patients.",
+      stats: [
+        { value: "8", label: "New Requests" },
+        { value: "4", label: "Pending" },
+        { value: "2", label: "Priority" },
+      ],
+      onClick: () => navigate("/psychiatric-requests"),
+    },
+    {
+      emoji: "⚡",
+      title: "Quick Service Requests",
+      description:
+        "Check immediate assistance requests and short-term care assignments in your area.",
+      stats: [
+        { value: "6", label: "New" },
+        { value: "2", label: "Active" },
+      ],
+      onClick: () => navigate("/quick-requests"),
+    },
+    {
+      emoji: "📋",
+      title: "My Assignments",
+      description:
+        "View your current and upcoming care assignments, schedules, and patient details.",
+      stats: [
+        { value: "4", label: "Active" },
+        { value: "2", label: "Upcoming" },
+      ],
+      onClick: () => navigate("/my-assignments"),
+    },
+    {
+      emoji: "👤",
+      title: "My Profile",
+      description:
+        "Manage your professional profile, update certifications, and view performance metrics.",
+      stats: [
+        { value: "15", label: "Completed" },
+        { value: "4.9", label: "Rating" },
+      ],
+      onClick: () => navigate("/profile"),
+    },
+  ];
 
   return (
     <StyledLayout>
@@ -320,17 +461,41 @@ function AuthenticatedApp() {
                 </Button>
               </>
             )}
-            <Button type="text">Dashboard</Button>
             <Button type="primary" danger onClick={() => signOut()}>
               Sign Out
             </Button>
           </motion.div>
         </div>
       </AnimatedHeader>
-      <AnimatedContent {...fadeInUp}>
-        <Title level={2} style={{ color: "#1a3d7c" }}>
-          Welcome, {user?.email}
-        </Title>
+      <AnimatedContent
+        {...fadeInUp}
+        style={{
+          background: "linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%)",
+        }}
+      >
+        <DashboardGrid>
+          {serviceCards.map((card, index) => (
+            <ServiceCard
+              key={card.title}
+              onClick={card.onClick}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <div className="emoji">{card.emoji}</div>
+              <h3 className="title">{card.title}</h3>
+              <p className="description">{card.description}</p>
+              <div className="stats">
+                {card.stats.map((stat, i) => (
+                  <div key={i} className="stat-item">
+                    <span className="value">{stat.value}</span>
+                    <span className="label">{stat.label}</span>
+                  </div>
+                ))}
+              </div>
+            </ServiceCard>
+          ))}
+        </DashboardGrid>
       </AnimatedContent>
     </StyledLayout>
   );
