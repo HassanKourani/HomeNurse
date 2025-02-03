@@ -11,13 +11,16 @@ import {
   Space,
   Modal,
   Result,
+  Typography,
 } from "antd";
 import { UploadOutlined, CheckCircleFilled } from "@ant-design/icons";
 import type { UploadChangeParam, UploadFile } from "antd/es/upload";
 import styled from "styled-components";
+import { motion, AnimatePresence } from "framer-motion";
 import supabase from "../../utils/supabase";
 
 const { TextArea } = Input;
+const { Title, Text } = Typography;
 
 type ServiceType =
   | "full_time_private_normal"
@@ -281,11 +284,46 @@ const SuccessModal = styled(Modal)`
   }
 `;
 
+const MotionCard = motion(StyledCard);
+const MotionFeatureItem = motion(FeatureItem);
+
+const containerAnimation = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.3,
+    },
+  },
+};
+
+const itemAnimation = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
+
+const stepVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 50 : -50,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    x: direction < 0 ? 50 : -50,
+    opacity: 0,
+  }),
+};
+
 export default function LandingForm() {
   const [form] = Form.useForm<LandingFormValues>();
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
+  const [direction, setDirection] = useState(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = async () => {
@@ -372,7 +410,6 @@ export default function LandingForm() {
 
   const next = async () => {
     try {
-      // Validate current step fields before moving to next
       await form.validateFields(
         currentStep === 0
           ? ["full_name", "phone_number"]
@@ -380,13 +417,15 @@ export default function LandingForm() {
           ? ["area", "location"]
           : ["service_type", "details"]
       );
+      setDirection(1);
       setCurrentStep(currentStep + 1);
     } catch {
-      // Form validation failed, error message will be shown by the form itself
+      // Form validation failed
     }
   };
 
   const prev = () => {
+    setDirection(-1);
     setCurrentStep(currentStep - 1);
   };
 
@@ -395,210 +434,313 @@ export default function LandingForm() {
     setCurrentStep(0);
   };
 
+  const renderFormStep = (step: number) => {
+    switch (step) {
+      case 0:
+        return (
+          <motion.div
+            key="step0"
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+            }}
+          >
+            <Form.Item
+              label="Full Name"
+              name="full_name"
+              rules={[
+                { required: true, message: "Please input your full name!" },
+              ]}
+            >
+              <Input placeholder="Enter your full name" />
+            </Form.Item>
+
+            <Form.Item
+              label="Phone Number"
+              name="phone_number"
+              rules={[
+                { required: true, message: "Please input your phone number!" },
+                {
+                  pattern: /^\+?[1-9]\d{1,14}$/,
+                  message: "Please enter a valid phone number!",
+                },
+              ]}
+            >
+              <Input placeholder="Enter your phone number" />
+            </Form.Item>
+          </motion.div>
+        );
+      case 1:
+        return (
+          <motion.div
+            key="step1"
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+            }}
+          >
+            <Form.Item
+              label="Area"
+              name="area"
+              rules={[{ required: true, message: "Please select your area!" }]}
+            >
+              <Select placeholder="Select your area">
+                {(Object.entries(AREA_LABELS) as [Area, string][]).map(
+                  ([value, label]) => (
+                    <Select.Option
+                      key={value}
+                      value={value}
+                      disabled={!ENABLED_AREAS.includes(value)}
+                    >
+                      {label}
+                    </Select.Option>
+                  )
+                )}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              label="Location Details"
+              name="location"
+              rules={[
+                {
+                  required: true,
+                  message: "Please provide your location details!",
+                },
+              ]}
+            >
+              <TextArea
+                rows={2}
+                placeholder="Please provide detailed address (building, street, nearby landmarks)"
+              />
+            </Form.Item>
+          </motion.div>
+        );
+      case 2:
+        return (
+          <motion.div
+            key="step2"
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+            }}
+          >
+            <Form.Item
+              label="Service Type"
+              name="service_type"
+              rules={[
+                { required: true, message: "Please select a service type!" },
+              ]}
+            >
+              <Select placeholder="Select the type of service you need">
+                {(
+                  Object.entries(SERVICE_TYPE_LABELS) as [ServiceType, string][]
+                ).map(([value, label]) => (
+                  <Select.Option key={value} value={value}>
+                    {label}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              label="Details"
+              name="details"
+              rules={[
+                {
+                  required: true,
+                  message: "Please provide details about your needs!",
+                },
+              ]}
+            >
+              <TextArea
+                rows={4}
+                placeholder="Please describe your needs and any relevant medical conditions"
+              />
+            </Form.Item>
+
+            <Form.Item label="Supporting Document (Optional)">
+              <Upload
+                maxCount={1}
+                beforeUpload={() => false}
+                onChange={handleImageChange}
+              >
+                <Button icon={<UploadOutlined />}>Click to Upload</Button>
+              </Upload>
+            </Form.Item>
+          </motion.div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <PageWrapper>
       <MainContainer>
         <BannerSection>
-          <MainTitle>
-            Professional
-            <span>Healthcare</span>
-            At Your Doorstep
-          </MainTitle>
-          <Slogan>
-            Experience premium medical care in the comfort of your home with our
-            expert team of healthcare professionals.
-          </Slogan>
-          <FeaturesList>
-            <FeatureItem>
-              <div className="icon">👨‍⚕️</div>
-              <div className="content">
-                <h3>Expert Medical Staff</h3>
-                <p>
-                  Qualified and experienced healthcare professionals at your
-                  service.
-                </p>
-              </div>
-            </FeatureItem>
-            <FeatureItem>
-              <div className="icon">🏥</div>
-              <div className="content">
-                <h3>24/7 Care Available</h3>
-                <p>Round-the-clock medical support when you need it most.</p>
-              </div>
-            </FeatureItem>
-            <FeatureItem>
-              <div className="icon">⚡</div>
-              <div className="content">
-                <h3>Quick Response</h3>
-                <p>Fast and efficient service delivery to your location.</p>
-              </div>
-            </FeatureItem>
-            <FeatureItem>
-              <div className="icon">💯</div>
-              <div className="content">
-                <h3>Quality Assured</h3>
-                <p>
-                  Highest standards of medical care and patient satisfaction.
-                </p>
-              </div>
-            </FeatureItem>
-          </FeaturesList>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <MainTitle>
+              Professional
+              <motion.span
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+              >
+                Healthcare
+              </motion.span>
+              At Your Doorstep
+            </MainTitle>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+          >
+            <Slogan>
+              Experience premium medical care in the comfort of your home with
+              our expert team of healthcare professionals.
+            </Slogan>
+          </motion.div>
+
+          <motion.div
+            variants={containerAnimation}
+            initial="hidden"
+            animate="show"
+            className="features-container"
+          >
+            <FeaturesList>
+              <MotionFeatureItem variants={itemAnimation}>
+                <div className="icon">👨‍⚕️</div>
+                <div className="content">
+                  <h3>Expert Medical Staff</h3>
+                  <p>
+                    Qualified and experienced healthcare professionals at your
+                    service.
+                  </p>
+                </div>
+              </MotionFeatureItem>
+              <MotionFeatureItem variants={itemAnimation}>
+                <div className="icon">🏥</div>
+                <div className="content">
+                  <h3>24/7 Care Available</h3>
+                  <p>Round-the-clock medical support when you need it most.</p>
+                </div>
+              </MotionFeatureItem>
+              <MotionFeatureItem variants={itemAnimation}>
+                <div className="icon">⚡</div>
+                <div className="content">
+                  <h3>Quick Response</h3>
+                  <p>Fast and efficient service delivery to your location.</p>
+                </div>
+              </MotionFeatureItem>
+              <MotionFeatureItem variants={itemAnimation}>
+                <div className="icon">💯</div>
+                <div className="content">
+                  <h3>Quality Assured</h3>
+                  <p>
+                    Highest standards of medical care and patient satisfaction.
+                  </p>
+                </div>
+              </MotionFeatureItem>
+            </FeaturesList>
+          </motion.div>
         </BannerSection>
 
         <FormSection>
-          <StyledCard>
-            <StyledSteps
-              current={currentStep}
-              items={steps}
-              labelPlacement="vertical"
-            />
-
-            <Form<LandingFormValues>
-              form={form}
-              layout="vertical"
-              onFinish={handleSubmit}
-              autoComplete="off"
+          <MotionCard
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              style={{ textAlign: "center", marginBottom: "32px" }}
             >
-              <div style={{ display: currentStep === 0 ? "block" : "none" }}>
-                <Form.Item
-                  label="Full Name"
-                  name="full_name"
-                  rules={[
-                    { required: true, message: "Please input your full name!" },
-                  ]}
-                >
-                  <Input placeholder="Enter your full name" />
-                </Form.Item>
+              <Title
+                level={2}
+                style={{ color: "#1a3d7c", marginBottom: "8px" }}
+              >
+                Request Medical Care
+              </Title>
+              <Text style={{ fontSize: "16px", color: "#666" }}>
+                Fill out the form below and our healthcare professionals will
+                contact you shortly
+              </Text>
+            </motion.div>
 
-                <Form.Item
-                  label="Phone Number"
-                  name="phone_number"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please input your phone number!",
-                    },
-                    {
-                      pattern: /^\+?[1-9]\d{1,14}$/,
-                      message: "Please enter a valid phone number!",
-                    },
-                  ]}
-                >
-                  <Input placeholder="Enter your phone number" />
-                </Form.Item>
-              </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+            >
+              <StyledSteps
+                current={currentStep}
+                items={steps}
+                labelPlacement="vertical"
+              />
 
-              <div style={{ display: currentStep === 1 ? "block" : "none" }}>
-                <Form.Item
-                  label="Area"
-                  name="area"
-                  rules={[
-                    { required: true, message: "Please select your area!" },
-                  ]}
-                >
-                  <Select placeholder="Select your area">
-                    {(Object.entries(AREA_LABELS) as [Area, string][]).map(
-                      ([value, label]) => (
-                        <Select.Option
-                          key={value}
-                          value={value}
-                          disabled={!ENABLED_AREAS.includes(value)}
-                        >
-                          {label}
-                        </Select.Option>
-                      )
-                    )}
-                  </Select>
-                </Form.Item>
+              <Form<LandingFormValues>
+                form={form}
+                layout="vertical"
+                onFinish={handleSubmit}
+                autoComplete="off"
+              >
+                <AnimatePresence mode="wait" custom={direction}>
+                  {renderFormStep(currentStep)}
+                </AnimatePresence>
 
-                <Form.Item
-                  label="Location Details"
-                  name="location"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please provide your location details!",
-                    },
-                  ]}
-                >
-                  <TextArea
-                    rows={2}
-                    placeholder="Please provide detailed address (building, street, nearby landmarks)"
-                  />
-                </Form.Item>
-              </div>
-
-              <div style={{ display: currentStep === 2 ? "block" : "none" }}>
-                <Form.Item
-                  label="Service Type"
-                  name="service_type"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please select a service type!",
-                    },
-                  ]}
-                >
-                  <Select placeholder="Select the type of service you need">
-                    {(
-                      Object.entries(SERVICE_TYPE_LABELS) as [
-                        ServiceType,
-                        string
-                      ][]
-                    ).map(([value, label]) => (
-                      <Select.Option key={value} value={value}>
-                        {label}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-
-                <Form.Item
-                  label="Details"
-                  name="details"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please provide details about your needs!",
-                    },
-                  ]}
-                >
-                  <TextArea
-                    rows={4}
-                    placeholder="Please describe your needs and any relevant medical conditions"
-                  />
-                </Form.Item>
-
-                <Form.Item label="Supporting Document (Optional)">
-                  <Upload
-                    maxCount={1}
-                    beforeUpload={() => false}
-                    onChange={handleImageChange}
+                <Form.Item>
+                  <Space
+                    style={{ width: "100%", justifyContent: "space-between" }}
                   >
-                    <Button icon={<UploadOutlined />}>Click to Upload</Button>
-                  </Upload>
+                    {currentStep > 0 && (
+                      <Button onClick={prev}>Previous</Button>
+                    )}
+                    {currentStep < steps.length - 1 && (
+                      <Button type="primary" onClick={next}>
+                        Next
+                      </Button>
+                    )}
+                    {currentStep === steps.length - 1 && (
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={loading}
+                      >
+                        Submit Request
+                      </Button>
+                    )}
+                  </Space>
                 </Form.Item>
-              </div>
-
-              <Form.Item>
-                <Space
-                  style={{ width: "100%", justifyContent: "space-between" }}
-                >
-                  {currentStep > 0 && <Button onClick={prev}>Previous</Button>}
-                  {currentStep < steps.length - 1 && (
-                    <Button type="primary" onClick={next}>
-                      Next
-                    </Button>
-                  )}
-                  {currentStep === steps.length - 1 && (
-                    <Button type="primary" htmlType="submit" loading={loading}>
-                      Submit Request
-                    </Button>
-                  )}
-                </Space>
-              </Form.Item>
-            </Form>
-          </StyledCard>
+              </Form>
+            </motion.div>
+          </MotionCard>
         </FormSection>
       </MainContainer>
 
@@ -609,21 +751,27 @@ export default function LandingForm() {
         width={560}
         centered
       >
-        <Result
-          icon={
-            <CheckCircleFilled style={{ color: "#52c41a", fontSize: 84 }} />
-          }
-          title="Request Submitted Successfully!"
-          subTitle="One of our professional nurses will contact you soon to discuss your request and provide personalized care options."
-          extra={[
-            <Button key="check" type="primary" size="large">
-              Track Request Status
-            </Button>,
-            <Button key="back" size="large" onClick={handleModalClose}>
-              Return to Home
-            </Button>,
-          ]}
-        />
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", duration: 0.5 }}
+        >
+          <Result
+            icon={
+              <CheckCircleFilled style={{ color: "#52c41a", fontSize: 84 }} />
+            }
+            title="Request Submitted Successfully!"
+            subTitle="One of our professional nurses will contact you soon to discuss your request and provide personalized care options."
+            extra={[
+              <Button key="check" type="primary" size="large">
+                Track Request Status
+              </Button>,
+              <Button key="back" size="large" onClick={handleModalClose}>
+                Return to Home
+              </Button>,
+            ]}
+          />
+        </motion.div>
       </SuccessModal>
     </PageWrapper>
   );

@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "./utils/AuthContext";
 import AuthForm from "./components/Auth/AuthForm";
 import LandingForm from "./components/Landing/LandingForm";
 import SignupPage from "./pages/SignupPage";
+import { motion, AnimatePresence } from "framer-motion";
 import "./App.css";
 
 const { Header, Content } = Layout;
@@ -227,31 +228,61 @@ const StyledLink = styled(Link)`
   }
 `;
 
+const AnimatedHeader = motion(StyledHeader);
+const AnimatedContent = motion(StyledContent);
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+  transition: { duration: 0.5 },
+};
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const fadeIn = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  transition: { duration: 0.5 },
+};
+
 function AuthenticatedApp() {
   const { user, signOut } = useAuth();
 
   return (
     <StyledLayout>
-      <StyledHeader>
+      <AnimatedHeader
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      >
         <div className="header-content">
-          <div className="logo-section">
+          <motion.div
+            className="logo-section"
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
             <span className="logo">👨‍⚕️</span>
             <Title level={4}>Medical Care Home Services</Title>
-          </div>
-          <div className="nav-actions">
+          </motion.div>
+          <motion.div
+            className="nav-actions"
+            initial={{ x: 20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
             <Button type="text">Dashboard</Button>
             <Button type="primary" danger onClick={() => signOut()}>
               Sign Out
             </Button>
-          </div>
+          </motion.div>
         </div>
-      </StyledHeader>
-      <StyledContent>
+      </AnimatedHeader>
+      <AnimatedContent {...fadeInUp}>
         <Title level={2} style={{ color: "#1a3d7c" }}>
           Welcome, {user?.email}
         </Title>
-        {/* Add your authenticated app content here */}
-      </StyledContent>
+      </AnimatedContent>
     </StyledLayout>
   );
 }
@@ -261,13 +292,27 @@ function UnauthenticatedApp() {
 
   return (
     <StyledLayout>
-      <StyledHeader>
+      <AnimatedHeader
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      >
         <div className="header-content">
-          <div className="logo-section">
+          <motion.div
+            className="logo-section"
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
             <span className="logo">👨‍⚕️</span>
             <Title level={4}>Medical Care Home Services</Title>
-          </div>
-          <div className="nav-actions">
+          </motion.div>
+          <motion.div
+            className="nav-actions"
+            initial={{ x: 20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
             {!showSignIn ? (
               <>
                 <Button type="text" onClick={() => setShowSignIn(true)}>
@@ -275,9 +320,11 @@ function UnauthenticatedApp() {
                 </Button>
                 <Button
                   type="primary"
-                  onClick={() => (window.location.href = "/signup")}
+                  onClick={() =>
+                    (window.location.href = "mailto:support@medicalcare.com")
+                  }
                 >
-                  Join Now
+                  Contact Support
                 </Button>
               </>
             ) : (
@@ -285,34 +332,52 @@ function UnauthenticatedApp() {
                 Back to Home
               </Button>
             )}
-          </div>
+          </motion.div>
         </div>
-      </StyledHeader>
-      <StyledContent>
-        {showSignIn ? (
-          <MainContainer>
-            <BannerSection>
-              <MainTitle>
-                Welcome Back to
-                <span>Medical Care</span>
-              </MainTitle>
-              <Subtitle>
-                Access your dashboard to manage patient requests and provide
-                exceptional healthcare services to those in need.
-              </Subtitle>
-              <Text>
-                New to our platform?{" "}
-                <StyledLink to="/signup">Create an Account</StyledLink>
-              </Text>
-            </BannerSection>
-            <FormSection>
-              <AuthForm mode="signin" />
-            </FormSection>
-          </MainContainer>
-        ) : (
-          <LandingForm />
-        )}
-      </StyledContent>
+      </AnimatedHeader>
+      <AnimatedContent {...fadeInUp}>
+        <AnimatePresence mode="wait">
+          {showSignIn ? (
+            <motion.div
+              key="signin"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <MainContainer>
+                <BannerSection>
+                  <MainTitle>
+                    Welcome Back to
+                    <span>Medical Care</span>
+                  </MainTitle>
+                  <Subtitle>
+                    Access your dashboard to manage patient requests and provide
+                    exceptional healthcare services to those in need.
+                  </Subtitle>
+                  <Text>
+                    New to our platform?{" "}
+                    <StyledLink to="/signup">Create an Account</StyledLink>
+                  </Text>
+                </BannerSection>
+                <FormSection>
+                  <AuthForm mode="signin" />
+                </FormSection>
+              </MainContainer>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="landing"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <LandingForm />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </AnimatedContent>
     </StyledLayout>
   );
 }
