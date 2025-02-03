@@ -1,7 +1,10 @@
-import { Layout, Typography } from "antd";
+import { useEffect } from "react";
+import { Layout, Typography, message } from "antd";
 import styled from "styled-components";
 import AuthForm from "../components/Auth/AuthForm";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../utils/AuthContext";
+import supabase from "../utils/supabase";
 
 const { Title, Text } = Typography;
 
@@ -85,20 +88,46 @@ const StyledLink = styled(Link)`
 `;
 
 export default function SignupPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (!user) {
+        message.error("Please sign in first");
+        navigate("/");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.role !== "superAdmin") {
+        message.error("You don't have permission to access this page");
+        navigate("/");
+      }
+    };
+
+    checkAccess();
+  }, [user, navigate]);
+
   return (
     <StyledLayout>
       <MainContainer>
         <BannerSection>
           <MainTitle>
-            Join Our Network of
-            <span>Healthcare Professionals</span>
+            Add New
+            <span>Healthcare Professional</span>
           </MainTitle>
           <Subtitle>
-            Connect with patients who need your expertise and provide quality
-            healthcare services from the comfort of their homes.
+            Create an account for a new nurse to join our network of healthcare
+            professionals.
           </Subtitle>
           <Text>
-            Already have an account? <StyledLink to="/">Sign In</StyledLink>
+            <StyledLink to="/nurses">View All Nurses</StyledLink>
           </Text>
         </BannerSection>
         <FormSection>

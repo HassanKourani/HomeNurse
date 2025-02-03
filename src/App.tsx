@@ -1,12 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout, Button, Typography, Spin } from "antd";
 import styled from "styled-components";
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "./utils/AuthContext";
 import AuthForm from "./components/Auth/AuthForm";
 import LandingForm from "./components/Landing/LandingForm";
 import SignupPage from "./pages/SignupPage";
+import NursesManagement from "./pages/NursesManagement";
 import { motion, AnimatePresence } from "framer-motion";
+import supabase from "./utils/supabase";
 import "./App.css";
 
 const { Header, Content } = Layout;
@@ -110,18 +118,31 @@ const StyledHeader = styled(Header)`
   }
 
   @media (max-width: 768px) {
+    height: 64px;
+
     .header-content {
       padding: 0 16px;
     }
 
     .logo-section {
+      .logo {
+        display: none;
+      }
+
       h4.ant-typography {
-        font-size: 18px;
+        font-size: 16px;
+        &::after {
+          content: "Medical Care";
+        }
+        span {
+          display: none;
+        }
       }
     }
 
     .ant-btn {
       padding: 0 16px;
+      font-size: 14px;
     }
   }
 `;
@@ -247,6 +268,22 @@ const fadeIn = {
 
 function AuthenticatedApp() {
   const { user, signOut } = useAuth();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkRole = async () => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user?.id)
+        .single();
+
+      setIsSuperAdmin(profile?.role === "superAdmin");
+    };
+
+    checkRole();
+  }, [user]);
 
   return (
     <StyledLayout>
@@ -263,7 +300,9 @@ function AuthenticatedApp() {
             transition={{ delay: 0.2 }}
           >
             <span className="logo">👨‍⚕️</span>
-            <Title level={4}>Medical Care Home Services</Title>
+            <Title level={4}>
+              <span>Home Services</span>
+            </Title>
           </motion.div>
           <motion.div
             className="nav-actions"
@@ -271,6 +310,16 @@ function AuthenticatedApp() {
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
+            {isSuperAdmin && (
+              <>
+                <Button type="text" onClick={() => navigate("/nurses")}>
+                  Manage Nurses
+                </Button>
+                <Button type="text" onClick={() => navigate("/signup")}>
+                  Add Nurse
+                </Button>
+              </>
+            )}
             <Button type="text">Dashboard</Button>
             <Button type="primary" danger onClick={() => signOut()}>
               Sign Out
@@ -305,7 +354,9 @@ function UnauthenticatedApp() {
             transition={{ delay: 0.2 }}
           >
             <span className="logo">👨‍⚕️</span>
-            <Title level={4}>Medical Care Home Services</Title>
+            <Title level={4}>
+              <span>Medical Care Home Services</span>
+            </Title>
           </motion.div>
           <motion.div
             className="nav-actions"
@@ -355,10 +406,9 @@ function UnauthenticatedApp() {
                     Access your dashboard to manage patient requests and provide
                     exceptional healthcare services to those in need.
                   </Subtitle>
-                  <Text>
-                    New to our platform?{" "}
-                    <StyledLink to="/signup">Create an Account</StyledLink>
-                  </Text>
+                  <StyledLink to="/" onClick={() => setShowSignIn(false)}>
+                    Go to main page
+                  </StyledLink>
                 </BannerSection>
                 <FormSection>
                   <AuthForm mode="signin" />
@@ -402,6 +452,7 @@ function AppWithProvider() {
       <BrowserRouter>
         <Routes>
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/nurses" element={<NursesManagement />} />
           <Route path="/*" element={<App />} />
         </Routes>
       </BrowserRouter>
