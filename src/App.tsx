@@ -18,6 +18,7 @@ import supabase from "./utils/supabase";
 import "./App.css";
 import RegularCareRequests from "./pages/RegularCareRequests";
 import PsychiatricCareRequests from "./pages/PsychiatricCareRequests";
+import QuickServiceRequests from "./pages/QuickServiceRequests";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -625,6 +626,7 @@ function AppWithProvider() {
             path="/psychiatric-requests"
             element={<PsychiatricCareRequests />}
           />
+          <Route path="/quick-requests" element={<QuickServiceRequests />} />
           <Route path="/*" element={<App />} />
         </Routes>
       </BrowserRouter>
