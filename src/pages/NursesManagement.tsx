@@ -25,7 +25,6 @@ type NurseProfile = {
 
 const PageContainer = styled(motion.div)`
   padding: 24px;
-  max-width: 1400px;
   margin: 0 auto;
   background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
   min-height: 100vh;

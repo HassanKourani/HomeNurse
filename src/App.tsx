@@ -16,6 +16,7 @@ import NursesManagement from "./pages/NursesManagement";
 import { motion, AnimatePresence } from "framer-motion";
 import supabase from "./utils/supabase";
 import "./App.css";
+import RegularCareRequests from "./pages/RegularCareRequests";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -37,7 +38,6 @@ const StyledHeader = styled(Header)`
   border-bottom: 1px solid rgba(24, 144, 255, 0.1);
 
   .header-content {
-    max-width: 1400px;
     width: 100%;
     height: 100%;
     margin: 0 auto;
@@ -149,7 +149,6 @@ const StyledHeader = styled(Header)`
 
 const StyledContent = styled(Content)`
   padding: 72px 24px 24px;
-  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
   min-height: calc(100vh - 72px);
@@ -271,7 +270,6 @@ const DashboardGrid = styled.div`
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   padding: 32px 24px;
-  max-width: 1400px;
   margin: 0 auto;
 
   @media (max-width: 1200px) {
@@ -618,6 +616,10 @@ function AppWithProvider() {
         <Routes>
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/nurses" element={<NursesManagement />} />
+          <Route
+            path="/regular-care-requests"
+            element={<RegularCareRequests />}
+          />
           <Route path="/*" element={<App />} />
         </Routes>
       </BrowserRouter>
