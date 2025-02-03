@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { Form, Input, Button, Alert, Card, Select, Typography } from "antd";
+import {
+  Form,
+  Input,
+  Button,
+  Alert,
+  Card,
+  Select,
+  Typography,
+  message,
+} from "antd";
 import styled from "styled-components";
 import { useAuth } from "../../utils/AuthContext";
 import {
@@ -193,9 +202,13 @@ export default function AuthForm({ mode }: AuthFormProps) {
           phone_number,
           role,
         });
+        message.success("Account created successfully");
+        form.resetFields();
       } else {
         const { email, password } = values as SignInFormValues;
         await signIn(email, password);
+        message.success("Sign in successful");
+        form.resetFields();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");

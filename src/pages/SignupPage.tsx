@@ -129,6 +129,10 @@ export default function SignupPage() {
           <Text>
             <StyledLink to="/nurses">View All Nurses</StyledLink>
           </Text>
+          <br />
+          <Text>
+            <StyledLink to="/">Go to main page</StyledLink>
+          </Text>
         </BannerSection>
         <FormSection>
           <AuthForm mode="signup" />
