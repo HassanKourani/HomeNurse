@@ -8,6 +8,7 @@ import {
   Descriptions,
   Input,
   Spin,
+  DatePicker,
 } from "antd";
 import { motion } from "framer-motion";
 import styled from "styled-components";
@@ -21,6 +22,7 @@ import {
   CheckOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../utils/AuthContext";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 
@@ -41,6 +43,7 @@ type RequestDetails = {
   status: "pending" | "accepted" | "completed" | "cancelled";
   created_at: string;
   price: number | null;
+  visit_date: string | null;
   assigned_nurse_id: string | null;
   patient: {
     full_name: string;
@@ -269,8 +272,11 @@ export default function RequestDetails() {
   const [request, setRequest] = useState<RequestDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingPrice, setEditingPrice] = useState(false);
+  const [editingVisitDate, setEditingVisitDate] = useState(false);
   const [newPrice, setNewPrice] = useState<string>("");
+  const [newVisitDate, setNewVisitDate] = useState<string | null>(null);
   const [savingPrice, setSavingPrice] = useState(false);
+  const [savingVisitDate, setSavingVisitDate] = useState(false);
   const [approvingRequest, setApprovingRequest] = useState(false);
   const [cancellingRequest, setCancellingRequest] = useState(false);
   const { id } = useParams();
@@ -309,6 +315,7 @@ export default function RequestDetails() {
             status,
             created_at,
             price,
+            visit_date,
             assigned_nurse_id,
             patient:profiles!fk_patient (
               full_name,
@@ -351,6 +358,7 @@ export default function RequestDetails() {
 
           setRequest(transformedData);
           setNewPrice(data.price?.toString() || "");
+          setNewVisitDate(data.visit_date || null);
         } else if (data) {
           const transformedData = {
             ...data,
@@ -360,6 +368,7 @@ export default function RequestDetails() {
 
           setRequest(transformedData);
           setNewPrice(data.price?.toString() || "");
+          setNewVisitDate(data.visit_date || null);
         }
       } catch (error) {
         console.error("Error in request details:", error);
@@ -399,6 +408,36 @@ export default function RequestDetails() {
       message.error("Failed to update price");
     } finally {
       setSavingPrice(false);
+    }
+  };
+
+  const handleUpdateVisitDate = async () => {
+    if (!newVisitDate || !id) return;
+
+    try {
+      setSavingVisitDate(true);
+      const { error } = await supabase.rpc("set_request_visit_date", {
+        rid: parseInt(id),
+        visit_date: newVisitDate,
+      });
+
+      if (error) {
+        console.error("Error updating visit date:", error);
+        message.error("Failed to update visit date");
+        return;
+      }
+
+      // If successful, update the local state
+      setRequest((prev) =>
+        prev ? { ...prev, visit_date: newVisitDate } : null
+      );
+      setEditingVisitDate(false);
+      message.success("Visit date updated successfully");
+    } catch (error) {
+      console.error("Error updating visit date:", error);
+      message.error("Failed to update visit date");
+    } finally {
+      setSavingVisitDate(false);
     }
   };
 
@@ -639,6 +678,101 @@ export default function RequestDetails() {
                     size="middle"
                   >
                     Edit Price
+                  </Button>
+                )}
+              </div>
+            )}
+          </Descriptions.Item>
+          <Descriptions.Item label="Visit Date" span={2}>
+            {editingVisitDate ? (
+              <PriceEditSection>
+                <DatePicker
+                  showTime={{
+                    format: "hh",
+                    showSecond: false,
+                    showMinute: false,
+                    use12Hours: true,
+                  }}
+                  format="YYYY-MM-DD hh A"
+                  value={
+                    newVisitDate ? dayjs(newVisitDate.split("+")[0]) : null
+                  }
+                  onChange={(date) => {
+                    if (!date) {
+                      setNewVisitDate(null);
+                      return;
+                    }
+
+                    // Get the selected hour and period (AM/PM)
+                    const hour = date.format("hh");
+                    const period = date.format("A");
+
+                    // Convert to 24-hour format manually
+                    let hour24 = parseInt(hour);
+                    if (period === "PM" && hour24 !== 12) {
+                      hour24 += 12;
+                    } else if (period === "AM" && hour24 === 12) {
+                      hour24 = 0;
+                    }
+
+                    // Format date without timezone
+                    const newDate = `${date.format("YYYY-MM-DD")} ${String(
+                      hour24
+                    ).padStart(2, "0")}:00:00`;
+                    setNewVisitDate(newDate);
+                  }}
+                  size="middle"
+                  style={{ width: "200px" }}
+                />
+                <Button
+                  type="primary"
+                  icon={<SaveOutlined />}
+                  onClick={handleUpdateVisitDate}
+                  loading={savingVisitDate}
+                  size="middle"
+                >
+                  Save
+                </Button>
+                <Button
+                  icon={<CloseOutlined />}
+                  onClick={() => {
+                    setEditingVisitDate(false);
+                    setNewVisitDate(
+                      request?.visit_date
+                        ? request.visit_date.split("+")[0]
+                        : null
+                    );
+                  }}
+                  size="middle"
+                >
+                  Cancel
+                </Button>
+              </PriceEditSection>
+            ) : (
+              <div
+                style={{ display: "flex", gap: "12px", alignItems: "center" }}
+              >
+                <Text>
+                  {request.visit_date
+                    ? (() => {
+                        const date = dayjs(request.visit_date.split("+")[0]);
+                        const hour24 = parseInt(date.format("HH"));
+                        const hour12 = hour24 % 12 || 12;
+                        const period = hour24 >= 12 ? "PM" : "AM";
+                        return `${date.format(
+                          "YYYY-MM-DD"
+                        )} ${hour12}:00 ${period}`;
+                      })()
+                    : "Not set"}
+                </Text>
+                {canEditPrice && (
+                  <Button
+                    type="link"
+                    icon={<EditOutlined />}
+                    onClick={() => setEditingVisitDate(true)}
+                    size="middle"
+                  >
+                    Edit Visit Date
                   </Button>
                 )}
               </div>
