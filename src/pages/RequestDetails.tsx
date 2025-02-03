@@ -102,7 +102,7 @@ const HeaderSection = styled.div`
   }
 `;
 
-const StyledCard = styled(Card)`
+const StyledCard = styled(motion(Card))`
   margin-bottom: 24px;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -523,7 +523,8 @@ export default function RequestDetails() {
   };
 
   const canEditPrice =
-    userRole !== "patient" && request?.assigned_nurse_id === user?.id;
+    userRole === "superAdmin" ||
+    (userRole !== "patient" && request?.assigned_nurse_id === user?.id);
 
   const canApproveRequest =
     userRole !== "patient" &&
@@ -581,217 +582,244 @@ export default function RequestDetails() {
         </div>
       </HeaderSection>
 
-      <StyledCard>
-        <Descriptions
-          title="Request Information"
-          bordered
-          column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}
-          extra={
-            <>
-              {canApproveRequest && (
-                <Button
-                  type="primary"
-                  onClick={handleApproveRequest}
-                  loading={approvingRequest}
-                  icon={<CheckOutlined />}
-                >
-                  Approve Request
-                </Button>
-              )}
-              {canCancelRequest && (
-                <Button
-                  danger
-                  onClick={handleCancelRequest}
-                  loading={cancellingRequest}
-                  style={{ marginLeft: 8 }}
-                >
-                  Cancel Request
-                </Button>
-              )}
-            </>
-          }
+      <StyledCard
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{
+          duration: 0.5,
+          delay: 0.2,
+          ease: "easeOut",
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.5,
+            delay: 0.4,
+            ease: "easeOut",
+          }}
         >
-          <Descriptions.Item label="Service Type">
-            <Tag color={getServiceTypeColor(request.service_type)}>
-              {serviceTypeLabels[request.service_type]}
-            </Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="Status">
-            <Tag color={statusColors[request.status]}>
-              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-            </Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="Patient Name">
-            {request.patient.full_name}
-          </Descriptions.Item>
-          <Descriptions.Item label="Contact">
-            {request.patient.phone_number}
-          </Descriptions.Item>
-          <Descriptions.Item label="Location">
-            {request.patient.area} - {request.patient.location}
-          </Descriptions.Item>
-          <Descriptions.Item label="Created At">
-            {new Date(request.created_at).toLocaleString()}
-          </Descriptions.Item>
-          <Descriptions.Item label="Price" span={2}>
-            {editingPrice ? (
-              <PriceEditSection>
-                <Input
-                  value={newPrice}
-                  onChange={(e) => setNewPrice(e.target.value)}
-                  type="number"
-                  prefix="$"
-                  size="middle"
-                />
-                <Button
-                  type="primary"
-                  icon={<SaveOutlined />}
-                  onClick={handleUpdatePrice}
-                  loading={savingPrice}
-                  size="middle"
-                >
-                  Save
-                </Button>
-                <Button
-                  icon={<CloseOutlined />}
-                  onClick={() => {
-                    setEditingPrice(false);
-                    setNewPrice(request.price?.toString() || "");
-                  }}
-                  size="middle"
-                >
-                  Cancel
-                </Button>
-              </PriceEditSection>
-            ) : (
-              <div
-                style={{ display: "flex", gap: "12px", alignItems: "center" }}
+          <Descriptions
+            title="Request Information"
+            bordered
+            column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}
+            extra={
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  duration: 0.5,
+                  delay: 0.6,
+                  ease: "easeOut",
+                }}
               >
-                <Text>
-                  {request.price ? `$${request.price.toFixed(2)}` : "Not set"}
-                </Text>
-                {canEditPrice && (
+                {canApproveRequest && (
                   <Button
-                    type="link"
-                    icon={<EditOutlined />}
-                    onClick={() => setEditingPrice(true)}
-                    size="middle"
+                    type="primary"
+                    onClick={handleApproveRequest}
+                    loading={approvingRequest}
+                    icon={<CheckOutlined />}
                   >
-                    Edit Price
+                    Approve Request
                   </Button>
                 )}
-              </div>
-            )}
-          </Descriptions.Item>
-          <Descriptions.Item label="Visit Date" span={2}>
-            {editingVisitDate ? (
-              <PriceEditSection>
-                <DatePicker
-                  showTime={{
-                    format: "hh",
-                    showSecond: false,
-                    showMinute: false,
-                    use12Hours: true,
-                  }}
-                  format="YYYY-MM-DD hh A"
-                  value={
-                    newVisitDate ? dayjs(newVisitDate.split("+")[0]) : null
-                  }
-                  onChange={(date) => {
-                    if (!date) {
-                      setNewVisitDate(null);
-                      return;
-                    }
-
-                    // Get the selected hour and period (AM/PM)
-                    const hour = date.format("hh");
-                    const period = date.format("A");
-
-                    // Convert to 24-hour format manually
-                    let hour24 = parseInt(hour);
-                    if (period === "PM" && hour24 !== 12) {
-                      hour24 += 12;
-                    } else if (period === "AM" && hour24 === 12) {
-                      hour24 = 0;
-                    }
-
-                    // Format date without timezone
-                    const newDate = `${date.format("YYYY-MM-DD")} ${String(
-                      hour24
-                    ).padStart(2, "0")}:00:00`;
-                    setNewVisitDate(newDate);
-                  }}
-                  size="middle"
-                  style={{ width: "200px" }}
-                />
-                <Button
-                  type="primary"
-                  icon={<SaveOutlined />}
-                  onClick={handleUpdateVisitDate}
-                  loading={savingVisitDate}
-                  size="middle"
-                >
-                  Save
-                </Button>
-                <Button
-                  icon={<CloseOutlined />}
-                  onClick={() => {
-                    setEditingVisitDate(false);
-                    setNewVisitDate(
-                      request?.visit_date
-                        ? request.visit_date.split("+")[0]
-                        : null
-                    );
-                  }}
-                  size="middle"
-                >
-                  Cancel
-                </Button>
-              </PriceEditSection>
-            ) : (
-              <div
-                style={{ display: "flex", gap: "12px", alignItems: "center" }}
-              >
-                <Text>
-                  {request.visit_date
-                    ? (() => {
-                        const date = dayjs(request.visit_date.split("+")[0]);
-                        const hour24 = parseInt(date.format("HH"));
-                        const hour12 = hour24 % 12 || 12;
-                        const period = hour24 >= 12 ? "PM" : "AM";
-                        return `${date.format(
-                          "YYYY-MM-DD"
-                        )} ${hour12}:00 ${period}`;
-                      })()
-                    : "Not set"}
-                </Text>
-                {canEditPrice && (
+                {canCancelRequest && (
                   <Button
-                    type="link"
-                    icon={<EditOutlined />}
-                    onClick={() => setEditingVisitDate(true)}
-                    size="middle"
+                    danger
+                    onClick={handleCancelRequest}
+                    loading={cancellingRequest}
+                    style={{ marginLeft: 8 }}
                   >
-                    Edit Visit Date
+                    Cancel Request
                   </Button>
                 )}
-              </div>
+              </motion.div>
+            }
+          >
+            <Descriptions.Item label="Service Type">
+              <Tag color={getServiceTypeColor(request.service_type)}>
+                {serviceTypeLabels[request.service_type]}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Status">
+              <Tag color={statusColors[request.status]}>
+                {request.status.charAt(0).toUpperCase() +
+                  request.status.slice(1)}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Patient Name">
+              {request.patient.full_name}
+            </Descriptions.Item>
+            <Descriptions.Item label="Contact">
+              {request.patient.phone_number}
+            </Descriptions.Item>
+            <Descriptions.Item label="Location">
+              {request.patient.area} - {request.patient.location}
+            </Descriptions.Item>
+            <Descriptions.Item label="Created At">
+              {new Date(request.created_at).toLocaleString()}
+            </Descriptions.Item>
+            <Descriptions.Item label="Price" span={2}>
+              {editingPrice ? (
+                <PriceEditSection>
+                  <Input
+                    value={newPrice}
+                    onChange={(e) => setNewPrice(e.target.value)}
+                    type="number"
+                    prefix="$"
+                    size="middle"
+                  />
+                  <Button
+                    type="primary"
+                    icon={<SaveOutlined />}
+                    onClick={handleUpdatePrice}
+                    loading={savingPrice}
+                    size="middle"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    icon={<CloseOutlined />}
+                    onClick={() => {
+                      setEditingPrice(false);
+                      setNewPrice(request.price?.toString() || "");
+                    }}
+                    size="middle"
+                  >
+                    Cancel
+                  </Button>
+                </PriceEditSection>
+              ) : (
+                <div
+                  style={{ display: "flex", gap: "12px", alignItems: "center" }}
+                >
+                  <Text>
+                    {request.price ? `$${request.price.toFixed(2)}` : "Not set"}
+                  </Text>
+                  {canEditPrice && (
+                    <Button
+                      type="link"
+                      icon={<EditOutlined />}
+                      onClick={() => setEditingPrice(true)}
+                      size="middle"
+                    >
+                      Edit Price
+                    </Button>
+                  )}
+                </div>
+              )}
+            </Descriptions.Item>
+            <Descriptions.Item label="Visit Date" span={2}>
+              {editingVisitDate ? (
+                <PriceEditSection>
+                  <DatePicker
+                    showTime={{
+                      format: "hh",
+                      showSecond: false,
+                      showMinute: false,
+                      use12Hours: true,
+                    }}
+                    format="YYYY-MM-DD hh A"
+                    value={
+                      newVisitDate ? dayjs(newVisitDate.split("+")[0]) : null
+                    }
+                    onChange={(date) => {
+                      if (!date) {
+                        setNewVisitDate(null);
+                        return;
+                      }
+
+                      // Get the selected hour and period (AM/PM)
+                      const hour = date.format("hh");
+                      const period = date.format("A");
+
+                      // Convert to 24-hour format manually
+                      let hour24 = parseInt(hour);
+                      if (period === "PM" && hour24 !== 12) {
+                        hour24 += 12;
+                      } else if (period === "AM" && hour24 === 12) {
+                        hour24 = 0;
+                      }
+
+                      // Format date without timezone
+                      const newDate = `${date.format("YYYY-MM-DD")} ${String(
+                        hour24
+                      ).padStart(2, "0")}:00:00`;
+                      setNewVisitDate(newDate);
+                    }}
+                    size="middle"
+                    style={{ width: "200px" }}
+                  />
+                  <Button
+                    type="primary"
+                    icon={<SaveOutlined />}
+                    onClick={handleUpdateVisitDate}
+                    loading={savingVisitDate}
+                    size="middle"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    icon={<CloseOutlined />}
+                    onClick={() => {
+                      setEditingVisitDate(false);
+                      setNewVisitDate(
+                        request?.visit_date
+                          ? request.visit_date.split("+")[0]
+                          : null
+                      );
+                    }}
+                    size="middle"
+                  >
+                    Cancel
+                  </Button>
+                </PriceEditSection>
+              ) : (
+                <div
+                  style={{ display: "flex", gap: "12px", alignItems: "center" }}
+                >
+                  <Text>
+                    {request.visit_date
+                      ? (() => {
+                          const date = dayjs(request.visit_date.split("+")[0]);
+                          const hour24 = parseInt(date.format("HH"));
+                          const hour12 = hour24 % 12 || 12;
+                          const period = hour24 >= 12 ? "PM" : "AM";
+                          return `${date.format(
+                            "YYYY-MM-DD"
+                          )} ${hour12}:00 ${period}`;
+                        })()
+                      : "Not set"}
+                  </Text>
+                  {canEditPrice && (
+                    <Button
+                      type="link"
+                      icon={<EditOutlined />}
+                      onClick={() => setEditingVisitDate(true)}
+                      size="middle"
+                    >
+                      Edit Visit Date
+                    </Button>
+                  )}
+                </div>
+              )}
+            </Descriptions.Item>
+            <Descriptions.Item label="Details" span={2}>
+              {request.details}
+            </Descriptions.Item>
+            {request.assigned_nurse && (
+              <>
+                <Descriptions.Item label="Assigned Nurse">
+                  {request.assigned_nurse.full_name}
+                </Descriptions.Item>
+                <Descriptions.Item label="Nurse Contact">
+                  {request.assigned_nurse.phone_number}
+                </Descriptions.Item>
+              </>
             )}
-          </Descriptions.Item>
-          <Descriptions.Item label="Details" span={2}>
-            {request.details}
-          </Descriptions.Item>
-          {request.assigned_nurse && (
-            <>
-              <Descriptions.Item label="Assigned Nurse">
-                {request.assigned_nurse.full_name}
-              </Descriptions.Item>
-              <Descriptions.Item label="Nurse Contact">
-                {request.assigned_nurse.phone_number}
-              </Descriptions.Item>
-            </>
-          )}
-        </Descriptions>
+          </Descriptions>
+        </motion.div>
       </StyledCard>
     </PageContainer>
   );
