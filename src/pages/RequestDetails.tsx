@@ -876,6 +876,25 @@ export default function RequestDetails() {
     if (!id || !selectedNurseForHours) return;
 
     try {
+      // Check if there's already an entry for this date
+      const { data: existingLog } = await supabase
+        .from("nurse_working_hours_log")
+        .select("*")
+        .eq("request_id", id)
+        .eq("nurse_id", selectedNurseForHours.id)
+        .eq("work_date", values.work_date.format("YYYY-MM-DD"))
+        .single();
+
+      if (existingLog) {
+        notificationApi.error({
+          message: "Error",
+          description:
+            "A working hours log already exists for this nurse on the selected date",
+          placement: "topRight",
+        });
+        return;
+      }
+
       const { error } = await supabase.rpc("add_nurse_working_hours", {
         rid: parseInt(id),
         nid: selectedNurseForHours.id,

@@ -11,6 +11,8 @@ import {
   Avatar,
   Spin,
   Button,
+  message,
+  Modal,
 } from "antd";
 import { motion } from "framer-motion";
 import styled from "styled-components";
@@ -26,7 +28,7 @@ import {
 import { useAuth } from "../utils/AuthContext";
 import supabase from "../utils/supabase";
 import dayjs from "dayjs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, Navigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -72,6 +74,7 @@ interface WorkingHoursLog {
   work_date: string;
   notes: string;
   created_at: string;
+  is_paid: boolean;
   request: {
     service_type: string;
   };
@@ -95,14 +98,6 @@ interface Profile {
   phone_number: string;
   role: string;
   created_at: string;
-}
-
-interface AssignedRequest {
-  request_id: number;
-  request: {
-    id: number;
-    service_type: string;
-  };
 }
 
 const PageContainer = styled(motion.div)`
@@ -224,113 +219,73 @@ const ResponsiveTableCard = styled(StyledCard)`
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const { nurseId } = useParams();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [workingHours, setWorkingHours] = useState<WorkingHoursLog[]>([]);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [stats, setStats] = useState<ProfileStats>({
     totalHours: 0,
     totalEarnings: 0,
     serviceTypeStats: {},
   });
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
   const navigate = useNavigate();
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      if (!user?.id) return;
+  // Define fetchProfileData first
+  const fetchProfileData = async () => {
+    if (!nurseId || authorized !== true) return;
 
-      try {
-        // Fetch profile details
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
+    try {
+      // Fetch profile details
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", nurseId)
+        .single();
 
-        if (profileError) throw profileError;
-        setProfile(profileData);
+      if (profileError) throw profileError;
+      setProfile(profileData);
 
-        // Fetch quick service assignments through proper join
-        const { data: assignedRequestsData, error: assignedRequestsError } =
-          await supabase
-            .from("request_nurse_assignments")
-            .select(
-              `
-            request_id,
-            request:requests!inner (
-              id,
-              service_type
-            )
+      // Fetch working hours with request details
+      const { data: hoursData, error: hoursError } = await supabase
+        .from("nurse_working_hours_log")
+        .select(
           `
-            )
-            .eq("nurse_id", user.id);
-
-        if (assignedRequestsError) throw assignedRequestsError;
-
-        // Filter and count quick services from assigned requests
-        const quickServiceCounts = (
-          assignedRequestsData as unknown as AssignedRequest[]
-        ).reduce((acc, curr) => {
-          const serviceType = curr.request.service_type;
-          if (QUICK_SERVICE_TYPES.includes(serviceType)) {
-            acc[serviceType] = (acc[serviceType] || 0) + 1;
-          }
-          return acc;
-        }, {} as Record<string, number>);
-
-        console.log("Assigned requests:", assignedRequestsData);
-        console.log("Quick service counts:", quickServiceCounts);
-
-        // Fetch working hours with request details
-        const { data: hoursData, error: hoursError } = await supabase
-          .from("nurse_working_hours_log")
-          .select(
-            `
             id,
             request_id,
             hours,
             work_date,
             notes,
             created_at,
+            is_paid,
             request:requests (
               service_type
             )
           `
-          )
-          .eq("nurse_id", user.id)
-          .order("work_date", { ascending: false });
+        )
+        .eq("nurse_id", nurseId)
+        .order("work_date", { ascending: false });
 
-        if (hoursError) throw hoursError;
+      if (hoursError) throw hoursError;
 
-        // Double type assertion to safely convert the response
-        const typedHoursData = (hoursData ||
-          []) as unknown as WorkingHoursLog[];
-        setWorkingHours(typedHoursData);
+      // Double type assertion to safely convert the response
+      const typedHoursData = (hoursData || []) as unknown as WorkingHoursLog[];
+      setWorkingHours(typedHoursData);
 
-        // Calculate statistics
-        const statistics: ProfileStats = {
-          totalHours: 0,
-          totalEarnings: 0,
-          serviceTypeStats: {},
-        };
+      // Calculate statistics for unpaid services only
+      const statistics: ProfileStats = {
+        totalHours: 0,
+        totalEarnings: 0,
+        serviceTypeStats: {},
+      };
 
-        // Initialize statistics for quick services from assignments
-        Object.entries(quickServiceCounts).forEach(([serviceType, count]) => {
-          statistics.serviceTypeStats[serviceType] = {
-            hours: 0, // Quick services don't count hours
-            earnings: count * SERVICE_RATES.quick_service, // $3 per service
-            count: count,
-          };
-          statistics.totalEarnings += count * SERVICE_RATES.quick_service;
-        });
-
-        // Process regular services from working hours
-        typedHoursData.forEach((log) => {
+      // Process only unpaid services from working hours
+      typedHoursData
+        .filter((log) => !log.is_paid) // Only process unpaid services
+        .forEach((log) => {
           const serviceType = log.request.service_type;
-
-          // Skip quick services as they're already counted from assignments
-          if (QUICK_SERVICE_TYPES.includes(serviceType)) {
-            return;
-          }
 
           if (!statistics.serviceTypeStats[serviceType]) {
             statistics.serviceTypeStats[serviceType] = {
@@ -340,33 +295,98 @@ export default function ProfilePage() {
             };
           }
 
-          statistics.serviceTypeStats[serviceType].hours += log.hours;
           statistics.serviceTypeStats[serviceType].count += 1;
 
-          // Calculate earnings for hourly services
+          // Calculate earnings based on service type
           let earnings = 0;
-          if (serviceType.includes("psychiatric")) {
+          if (isQuickService(serviceType)) {
+            // Quick services are charged per service
+            earnings = SERVICE_RATES.quick_service;
+          } else if (serviceType.includes("psychiatric")) {
+            // Psychiatric services are charged per hour
             earnings = log.hours * SERVICE_RATES.psychiatric;
+            statistics.serviceTypeStats[serviceType].hours += log.hours;
+            statistics.totalHours += log.hours;
           } else if (serviceType.includes("private")) {
+            // Normal private services are charged per hour
             earnings = log.hours * SERVICE_RATES.normal_private;
+            statistics.serviceTypeStats[serviceType].hours += log.hours;
+            statistics.totalHours += log.hours;
           }
 
           statistics.serviceTypeStats[serviceType].earnings += earnings;
-          statistics.totalHours += log.hours;
           statistics.totalEarnings += earnings;
         });
 
-        console.log("Final statistics:", statistics);
-        setStats(statistics);
-      } catch (error) {
-        console.error("Error fetching profile data:", error);
-      } finally {
+      console.log("Final unpaid statistics:", statistics);
+      setStats(statistics);
+    } catch (error) {
+      console.error("Error fetching profile data:", error);
+      message.error("Error loading profile data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Check authorization
+    const checkAuthorization = async () => {
+      console.log("Checking authorization...");
+      console.log("Current user:", user);
+      console.log("Nurse ID from params:", nurseId);
+
+      if (!user) {
+        console.log("No user found, not authorized");
+        setAuthorized(false);
         setLoading(false);
+        return;
+      }
+
+      try {
+        // Get the current user's profile to check role
+        const { data: currentUserProfile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        console.log("Current user profile:", currentUserProfile);
+        console.log("Profile error:", profileError);
+
+        if (profileError) throw profileError;
+
+        // User is authorized if they are superAdmin or if they're viewing their own profile
+        const isSuperAdmin = currentUserProfile?.role === "superAdmin";
+        setIsSuperAdmin(isSuperAdmin);
+        const isOwnProfile = user.id === nurseId;
+
+        console.log("Is super admin?", isSuperAdmin);
+        console.log("Is own profile?", isOwnProfile);
+        console.log("User role:", currentUserProfile?.role);
+
+        if (isSuperAdmin || isOwnProfile) {
+          console.log("User is authorized");
+          setAuthorized(true);
+        } else {
+          console.log("User is not authorized");
+          setAuthorized(false);
+          message.error("You are not authorized to view this profile");
+        }
+      } catch (error) {
+        console.error("Error checking authorization:", error);
+        setAuthorized(false);
+        message.error("Error checking authorization");
       }
     };
 
-    fetchProfileData();
-  }, [user?.id]);
+    checkAuthorization();
+  }, [user, nurseId]);
+
+  useEffect(() => {
+    if (authorized === true) {
+      fetchProfileData();
+    }
+  }, [nurseId, authorized]);
 
   // Add debug output for quick service stats
   useEffect(() => {
@@ -376,7 +396,73 @@ export default function ProfilePage() {
     console.log("Quick service stats:", quickServiceStats);
   }, [stats]);
 
-  if (loading) {
+  const handlePayment = () => {
+    console.log("Payment button clicked");
+    setIsModalVisible(true);
+  };
+
+  const handleModalOk = async () => {
+    try {
+      // Show loading message
+      const loadingMessage = message.loading("Processing payment...", 0);
+
+      // Call the Supabase function to process payment
+      const { error } = await supabase.rpc("process_nurse_payment", {
+        nurse_id_param: nurseId,
+      });
+
+      // Clear loading message
+      loadingMessage();
+
+      if (error) {
+        throw error;
+      }
+
+      // Show success message
+      message.success(
+        `Successfully processed payment for ${profile?.full_name}`
+      );
+
+      // Refresh the profile data to update statistics
+      fetchProfileData();
+
+      // Close modal
+      setIsModalVisible(false);
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      message.error("Failed to process payment. Please try again.");
+    }
+  };
+
+  const handleModalCancel = () => {
+    setIsModalVisible(false);
+  };
+
+  const handleSinglePayment = async (logId: number) => {
+    try {
+      const loadingMessage = message.loading("Processing payment...", 0);
+
+      // Call the Supabase function to process payment for single entry
+      const { error } = await supabase.rpc("process_single_payment", {
+        log_id_param: logId,
+      });
+
+      loadingMessage();
+
+      if (error) {
+        throw error;
+      }
+
+      message.success("Successfully processed payment for this entry");
+      fetchProfileData(); // Refresh the data
+    } catch (error) {
+      console.error("Error processing single payment:", error);
+      message.error("Failed to process payment. Please try again.");
+    }
+  };
+
+  // Show loading state while checking authorization
+  if (authorized === null || loading) {
     return (
       <PageContainer>
         <div
@@ -393,12 +479,38 @@ export default function ProfilePage() {
     );
   }
 
+  // Only redirect if we're sure the user is not authorized
+  if (authorized === false) {
+    console.log("Not authorized, redirecting to home");
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <PageContainer
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
+      <Modal
+        title="Confirm Payment Processing"
+        open={isModalVisible}
+        onOk={handleModalOk}
+        onCancel={handleModalCancel}
+        okText="Process Payment"
+        cancelText="Cancel"
+        okButtonProps={{
+          style: {
+            background: "linear-gradient(120deg, #1890ff, #096dd9)",
+            border: "none",
+          },
+        }}
+      >
+        <p>
+          Are you sure you want to process payment for {profile?.full_name}?
+          This will mark all unpaid working hours as paid.
+        </p>
+      </Modal>
+
       <BackButton icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
         Back
       </BackButton>
@@ -406,9 +518,37 @@ export default function ProfilePage() {
       <ProfileHeader>
         <Avatar size={96} icon={<UserOutlined />} />
         <div className="profile-info">
-          <Title level={2} className="profile-title">
-            {profile?.full_name}
-          </Title>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "16px",
+              justifyContent: "center",
+            }}
+          >
+            <Title level={2} className="profile-title" style={{ margin: 0 }}>
+              {profile?.full_name}
+            </Title>
+            {isSuperAdmin && user?.id !== nurseId && (
+              <Button
+                type="primary"
+                onClick={handlePayment}
+                style={{
+                  background: "linear-gradient(120deg, #1890ff, #096dd9)",
+                  border: "none",
+                  boxShadow: "0 2px 8px rgba(24, 144, 255, 0.25)",
+                  height: "40px",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+                icon={<DollarOutlined />}
+              >
+                Process Payment
+              </Button>
+            )}
+          </div>
           <Text className="profile-subtitle">
             <Tag color="blue">{profile?.role}</Tag>
           </Text>
@@ -636,6 +776,41 @@ export default function ProfilePage() {
                   key: "notes",
                   ellipsis: true,
                   width: 300,
+                },
+                {
+                  title: "Payment Status",
+                  key: "payment_status",
+                  width: 150,
+                  render: (_, record) => (
+                    <Tag color={record.is_paid ? "success" : "warning"}>
+                      {record.is_paid ? "Paid" : "Unpaid"}
+                    </Tag>
+                  ),
+                },
+                {
+                  title: "Actions",
+                  key: "actions",
+                  width: 150,
+                  render: (_, record) =>
+                    isSuperAdmin &&
+                    !record.is_paid && (
+                      <Button
+                        type="primary"
+                        size="small"
+                        onClick={() => handleSinglePayment(record.id)}
+                        icon={<DollarOutlined />}
+                        style={{
+                          background:
+                            "linear-gradient(120deg, #1890ff, #096dd9)",
+                          border: "none",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        Mark as Paid
+                      </Button>
+                    ),
                 },
               ]}
               scroll={{ x: 720, y: 400 }}

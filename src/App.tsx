@@ -499,7 +499,7 @@ function AuthenticatedApp() {
         { value: "15", label: "Completed" },
         { value: "4.9", label: "Rating" },
       ],
-      onClick: () => navigate("/profile"),
+      onClick: () => navigate(`/profile/${user?.id}`),
     },
   ];
 
@@ -729,7 +729,7 @@ function AppWithProvider() {
             <Route path="/quick-requests" element={<QuickServiceRequests />} />
             <Route path="/my-assignments" element={<MyAssignments />} />
             <Route path="/request/:id" element={<RequestDetails />} />
-            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/:nurseId" element={<ProfilePage />} />
             <Route path="/*" element={<App />} />
           </Routes>
         </BrowserRouter>

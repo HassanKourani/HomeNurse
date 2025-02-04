@@ -228,19 +228,38 @@ export default function NursesManagement() {
   useEffect(() => {
     // Check if user is superAdmin
     const checkAccess = async () => {
+      console.log("Checking access for nurses management...");
+      console.log("Current user:", user);
+
       if (!user) {
+        console.log("No user found, redirecting");
         navigate("/");
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
+      try {
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
 
-      if (profile?.role !== "superAdmin") {
-        message.error("You don't have permission to access this page");
+        console.log("User profile:", profile);
+        console.log("Profile error:", error);
+
+        if (error) throw error;
+
+        console.log("User role:", profile?.role);
+        if (profile?.role !== "superAdmin") {
+          console.log("Not a super admin, redirecting");
+          message.error("You don't have permission to access this page");
+          navigate("/");
+          return;
+        }
+        console.log("Access granted - is super admin");
+      } catch (error) {
+        console.error("Error checking access:", error);
+        message.error("Error checking permissions");
         navigate("/");
       }
     };
@@ -301,12 +320,9 @@ export default function NursesManagement() {
       title: "Actions",
       key: "actions",
       render: (_: undefined, record: NurseProfile) => (
-        <Space>
-          <Button
-            type="link"
-            onClick={() => console.log("View details:", record.id)}
-          >
-            View Details
+        <Space size="middle">
+          <Button type="link" onClick={() => navigate(`/profile/${record.id}`)}>
+            View Profile
           </Button>
           <Button
             type="link"
@@ -340,7 +356,7 @@ export default function NursesManagement() {
         <Button
           type="text"
           icon={<EyeOutlined />}
-          onClick={() => console.log("View details:", nurse.id)}
+          onClick={() => navigate(`/profile/${nurse.id}`)}
         >
           View
         </Button>

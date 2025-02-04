@@ -258,7 +258,7 @@ export default function RegularCareRequests() {
             "full_time_private_normal",
             "part_time_private_normal",
           ])
-          .is("assigned_nurse_id", null)
+          .in("status", ["pending", "accepted"])
           .order("created_at", { ascending: false });
 
         if (error) throw error;
