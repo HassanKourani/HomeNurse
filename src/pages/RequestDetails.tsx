@@ -93,6 +93,13 @@ interface NurseAssignment {
   working_hours: number;
 }
 
+type NurseData = {
+  id: string;
+  full_name: string;
+  phone_number: string;
+  working_hours?: number;
+};
+
 const PageContainer = styled(motion.div)`
   padding: 24px;
   margin: 0 auto;
@@ -303,6 +310,28 @@ const PriceEditSection = styled.div`
     }
   }
 `;
+
+const isQuickService = (serviceType: string) => {
+  const quickServices = ["blood_test", "im", "iv", "hemo_vs", "other"];
+  return quickServices.includes(serviceType);
+};
+
+const logOneHourForNurse = async (nurseId: string, requestId: number) => {
+  const today = dayjs().format("YYYY-MM-DD");
+  try {
+    const { error } = await supabase.rpc("add_nurse_working_hours", {
+      rid: requestId,
+      nid: nurseId,
+      hours: 1,
+      work_date: today,
+      notes: "Automatically logged for quick service",
+    });
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error logging automatic hour:", error);
+    throw error;
+  }
+};
 
 export default function RequestDetails() {
   const [request, setRequest] = useState<RequestDetails | null>(null);
@@ -603,13 +632,33 @@ export default function RequestDetails() {
         return;
       }
 
+      let nurseToAdd: NurseData = nurseData as NurseData;
+
+      // If it's a quick service, automatically log one hour
+      if (request && isQuickService(request.service_type)) {
+        try {
+          await logOneHourForNurse(user.id, parseInt(id));
+          nurseToAdd = {
+            ...nurseToAdd,
+            working_hours: 1,
+          };
+        } catch (error) {
+          console.error("Error logging automatic hour:", error);
+          notificationApi.warning({
+            message: "Warning",
+            description: "Request approved but failed to log automatic hour",
+            placement: "topRight",
+          });
+        }
+      }
+
       // Update local state
       setRequest((prev) =>
         prev
           ? {
               ...prev,
               status: "accepted",
-              assigned_nurses: [...(prev.assigned_nurses || []), nurseData],
+              assigned_nurses: [...(prev.assigned_nurses || []), nurseToAdd],
             }
           : null
       );
@@ -813,12 +862,33 @@ export default function RequestDetails() {
           continue;
         }
 
+        const nurseToAdd: NurseData = nurseData as NurseData;
+        let finalNurseData = nurseToAdd;
+
+        // If it's a quick service, automatically log one hour
+        if (request && isQuickService(request.service_type)) {
+          try {
+            await logOneHourForNurse(nurseId, parseInt(id));
+            finalNurseData = {
+              ...nurseToAdd,
+              working_hours: 1,
+            };
+          } catch (error) {
+            console.error("Error logging automatic hour:", error);
+            notificationApi.warning({
+              message: "Warning",
+              description: `Failed to log automatic hour for nurse ${nurseData.full_name}`,
+              placement: "topRight",
+            });
+          }
+        }
+
         setRequest((prev) =>
           prev
             ? {
                 ...prev,
                 status: "accepted",
-                assigned_nurses: [...prev.assigned_nurses, nurseData],
+                assigned_nurses: [...prev.assigned_nurses, finalNurseData],
               }
             : null
         );

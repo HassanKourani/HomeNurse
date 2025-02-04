@@ -24,6 +24,7 @@ import {
   MailOutlined,
   CalendarOutlined,
   ArrowLeftOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../utils/AuthContext";
 import supabase from "../utils/supabase";
@@ -98,6 +99,20 @@ interface Profile {
   phone_number: string;
   role: string;
   created_at: string;
+}
+
+// Add this interface for request data
+interface NurseRequest {
+  id: number;
+  service_type: string;
+  details: string;
+  status: string;
+  created_at: string;
+  patient: {
+    full_name: string;
+    phone_number: string;
+    location: string;
+  };
 }
 
 const PageContainer = styled(motion.div)`
@@ -232,6 +247,9 @@ export default function ProfilePage() {
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [selectedLogId, setSelectedLogId] = useState<number | null>(null);
+  const [nurseRequests, setNurseRequests] = useState<NurseRequest[]>([]);
 
   // Define fetchProfileData first
   const fetchProfileData = async () => {
@@ -247,6 +265,52 @@ export default function ProfilePage() {
 
       if (profileError) throw profileError;
       setProfile(profileData);
+
+      // Fetch requests assigned to this nurse
+      const { data: requestsData, error: requestsError } = await supabase
+        .from("request_nurse_assignments")
+        .select(
+          `
+          request:requests (
+            id,
+            service_type,
+            details,
+            status,
+            created_at,
+            patient:profiles!fk_patient (
+              full_name,
+              phone_number,
+              location
+            )
+          )
+        `
+        )
+        .eq("nurse_id", nurseId)
+        .order("request(created_at)", { ascending: false });
+
+      if (requestsError) throw requestsError;
+
+      // Transform the data to match our interface
+      const transformedRequests = (requestsData || [])
+        .map((item) => {
+          const request = item.request as unknown as NurseRequest;
+          if (!request) return null;
+          return {
+            id: request.id,
+            service_type: request.service_type,
+            details: request.details,
+            status: request.status,
+            created_at: request.created_at,
+            patient: {
+              full_name: request.patient.full_name,
+              phone_number: request.patient.phone_number,
+              location: request.patient.location,
+            },
+          };
+        })
+        .filter((item): item is NurseRequest => item !== null);
+
+      setNurseRequests(transformedRequests);
 
       // Fetch working hours with request details
       const { data: hoursData, error: hoursError } = await supabase
@@ -461,6 +525,39 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteClick = (logId: number) => {
+    setSelectedLogId(logId);
+    setIsDeleteModalVisible(true);
+  };
+
+  const handleDeleteModalOk = async () => {
+    if (!selectedLogId) return;
+
+    try {
+      const { error } = await supabase.rpc("delete_working_hours_log", {
+        log_id_param: selectedLogId,
+      });
+
+      if (error) {
+        console.error("Delete error:", error);
+        throw error;
+      }
+
+      message.success("Working hours record deleted successfully");
+      await fetchProfileData(); // Wait for the data to refresh
+      setIsDeleteModalVisible(false);
+      setSelectedLogId(null);
+    } catch (error) {
+      console.error("Error deleting working hours:", error);
+      message.error("Failed to delete working hours record");
+    }
+  };
+
+  const handleDeleteModalCancel = () => {
+    setIsDeleteModalVisible(false);
+    setSelectedLogId(null);
+  };
+
   // Show loading state while checking authorization
   if (authorized === null || loading) {
     return (
@@ -508,6 +605,23 @@ export default function ProfilePage() {
         <p>
           Are you sure you want to process payment for {profile?.full_name}?
           This will mark all unpaid working hours as paid.
+        </p>
+      </Modal>
+
+      <Modal
+        title="Delete Working Hours Record"
+        open={isDeleteModalVisible}
+        onOk={handleDeleteModalOk}
+        onCancel={handleDeleteModalCancel}
+        okText="Delete"
+        cancelText="Cancel"
+        okButtonProps={{
+          danger: true,
+        }}
+      >
+        <p>
+          Are you sure you want to delete this working hours record? This action
+          cannot be undone.
         </p>
       </Modal>
 
@@ -662,18 +776,10 @@ export default function ProfilePage() {
       </Row>
 
       <Tabs defaultActiveKey="1" style={{ marginTop: 24 }}>
-        <TabPane tab="Service Type Breakdown" key="1">
+        <TabPane tab="Assigned Requests" key="1">
           <ResponsiveTableCard>
             <Table
-              dataSource={Object.entries(stats.serviceTypeStats).map(
-                ([type, data]) => ({
-                  key: type,
-                  service_type: type,
-                  hours: data.hours,
-                  count: data.count,
-                  earnings: data.earnings,
-                })
-              )}
+              dataSource={nurseRequests}
               columns={[
                 {
                   title: "Service Type",
@@ -688,38 +794,82 @@ export default function ProfilePage() {
                           ? "purple"
                           : "green"
                       }
-                      style={{
-                        maxWidth: "200px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
                     >
                       {type.replace(/_/g, " ").toUpperCase()}
                     </Tag>
                   ),
                   width: 200,
+                },
+                {
+                  title: "Patient",
+                  dataIndex: ["patient", "full_name"],
+                  key: "patient_name",
+                  width: 200,
+                },
+                {
+                  title: "Contact",
+                  dataIndex: ["patient", "phone_number"],
+                  key: "patient_contact",
+                  width: 150,
+                },
+                {
+                  title: "Location",
+                  dataIndex: ["patient", "location"],
+                  key: "location",
+                  width: 200,
+                },
+                {
+                  title: "Status",
+                  dataIndex: "status",
+                  key: "status",
+                  render: (status: string) => (
+                    <Tag
+                      color={
+                        status === "completed"
+                          ? "success"
+                          : status === "accepted"
+                          ? "processing"
+                          : status === "cancelled"
+                          ? "error"
+                          : "warning"
+                      }
+                    >
+                      {status.toUpperCase()}
+                    </Tag>
+                  ),
+                  width: 120,
+                },
+                {
+                  title: "Created At",
+                  dataIndex: "created_at",
+                  key: "created_at",
+                  render: (date: string) =>
+                    dayjs(date).format("YYYY-MM-DD HH:mm"),
+                  width: 150,
+                },
+                {
+                  title: "Details",
+                  dataIndex: "details",
+                  key: "details",
                   ellipsis: true,
+                  width: 300,
                 },
                 {
-                  title: "Hours",
-                  dataIndex: "hours",
-                  key: "hours",
-                  render: (hours: number) => hours.toFixed(1),
-                },
-                {
-                  title: "Count",
-                  dataIndex: "count",
-                  key: "count",
-                },
-                {
-                  title: "Earnings",
-                  dataIndex: "earnings",
-                  key: "earnings",
-                  render: (earnings: number) => `$${earnings.toFixed(2)}`,
+                  title: "Actions",
+                  key: "actions",
+                  width: 100,
+                  render: (_, record) => (
+                    <Button
+                      type="link"
+                      onClick={() => navigate(`/request/${record.id}`)}
+                    >
+                      View Details
+                    </Button>
+                  ),
                 },
               ]}
               scroll={{ x: "max-content" }}
+              pagination={{ pageSize: 10 }}
             />
           </ResponsiveTableCard>
         </TabPane>
@@ -790,31 +940,47 @@ export default function ProfilePage() {
                 {
                   title: "Actions",
                   key: "actions",
-                  width: 150,
-                  render: (_, record) =>
-                    isSuperAdmin &&
-                    !record.is_paid && (
-                      <Button
-                        type="primary"
-                        size="small"
-                        onClick={() => handleSinglePayment(record.id)}
-                        icon={<DollarOutlined />}
-                        style={{
-                          background:
-                            "linear-gradient(120deg, #1890ff, #096dd9)",
-                          border: "none",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
-                      >
-                        Mark as Paid
-                      </Button>
-                    ),
+                  width: 200,
+                  render: (_, record) => (
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      {isSuperAdmin && !record.is_paid && (
+                        <Button
+                          type="primary"
+                          size="small"
+                          onClick={() => handleSinglePayment(record.id)}
+                          icon={<DollarOutlined />}
+                          style={{
+                            background:
+                              "linear-gradient(120deg, #1890ff, #096dd9)",
+                            border: "none",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          Mark as Paid
+                        </Button>
+                      )}
+                      {isSuperAdmin && (
+                        <Button
+                          danger
+                          size="small"
+                          onClick={() => handleDeleteClick(record.id)}
+                          icon={<DeleteOutlined />}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  ),
                 },
               ]}
-              scroll={{ x: 720, y: 400 }}
-              pagination={{ pageSize: 10 }}
+              scroll={{ x: "max-content" }}
             />
           </ResponsiveTableCard>
         </TabPane>
