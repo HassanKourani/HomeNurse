@@ -30,6 +30,7 @@ import {
   HomeOutlined,
 } from "@ant-design/icons";
 import { NotificationProvider } from "./utils/NotificationProvider";
+import ProfilePage from "./pages/ProfilePage";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -728,6 +729,7 @@ function AppWithProvider() {
             <Route path="/quick-requests" element={<QuickServiceRequests />} />
             <Route path="/my-assignments" element={<MyAssignments />} />
             <Route path="/request/:id" element={<RequestDetails />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/*" element={<App />} />
           </Routes>
         </BrowserRouter>

@@ -733,10 +733,7 @@ export default function RequestDetails() {
     request?.status === "pending";
 
   const canCancelRequest =
-    request?.status === "accepted" &&
-    (userRole === "superAdmin" ||
-      (userRole !== "patient" &&
-        request?.assigned_nurses.some((nurse) => nurse.id === user?.id)));
+    request?.status === "accepted" && userRole === "superAdmin";
 
   const filteredNurses = availableNurses.filter(
     (nurse) =>

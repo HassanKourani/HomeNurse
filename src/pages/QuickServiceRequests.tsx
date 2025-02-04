@@ -28,6 +28,20 @@ type DatabaseResponse = {
   };
 };
 
+interface RawResponse {
+  id: string;
+  service_type: DatabaseResponse["service_type"];
+  details: string;
+  status: DatabaseResponse["status"];
+  created_at: string;
+  patient: {
+    full_name: string;
+    phone_number: string;
+    location: string;
+    area: string;
+  };
+}
+
 const PageContainer = styled(motion.div)`
   padding: 24px;
   margin: 0 auto;
@@ -269,29 +283,24 @@ export default function QuickServiceRequests() {
             "hemo_vs",
             "other",
           ])
-          .is("assigned_nurse_id", null)
+          .eq("status", "pending")
           .order("created_at", { ascending: false });
 
         if (error) throw error;
 
-        if (data) {
-          const validData = data.filter(
-            (item) =>
-              item.id &&
-              item.service_type &&
-              item.details &&
-              item.status &&
-              item.created_at &&
-              item.patient &&
-              typeof item.patient === "object" &&
-              "full_name" in item.patient &&
-              "phone_number" in item.patient &&
-              "location" in item.patient &&
-              "area" in item.patient
-          ) as unknown as DatabaseResponse[];
+        // Transform the data - patient is already a single object
+        const transformedData =
+          (data as unknown as RawResponse[])?.map((item) => ({
+            id: item.id,
+            service_type: item.service_type,
+            details: item.details,
+            status: item.status,
+            created_at: item.created_at,
+            patient: item.patient,
+          })) || [];
 
-          setRequests(validData);
-        }
+        console.log("Transformed data:", transformedData);
+        setRequests(transformedData);
       } catch (error) {
         console.error("Error fetching requests:", error);
         message.error("Failed to fetch requests");
