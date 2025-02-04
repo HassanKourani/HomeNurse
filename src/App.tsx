@@ -224,6 +224,7 @@ const StyledHeader = styled(Header)`
 
 const StyledContent = styled(Content)`
   padding: 72px 24px 24px;
+  max-width: 1200px;
   margin: 0 auto;
   width: 100%;
   min-height: calc(100vh - 72px);
