@@ -315,6 +315,7 @@ export default function RequestDetails() {
   const [savingVisitDate, setSavingVisitDate] = useState(false);
   const [approvingRequest, setApprovingRequest] = useState(false);
   const [cancellingRequest, setCancellingRequest] = useState(false);
+  const [completingRequest, setCompletingRequest] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -721,6 +722,43 @@ export default function RequestDetails() {
     }
   };
 
+  const handleCompleteRequest = async () => {
+    if (!id) return;
+
+    try {
+      setCompletingRequest(true);
+      const { error } = await supabase.rpc("complete_request", {
+        rid: parseInt(id),
+      });
+
+      if (error) throw error;
+
+      // Update local state
+      setRequest((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "completed",
+            }
+          : null
+      );
+      notificationApi.success({
+        message: "Success",
+        description: "Request marked as completed successfully",
+        placement: "topRight",
+      });
+    } catch (error) {
+      console.error("Error completing request:", error);
+      notificationApi.error({
+        message: "Error",
+        description: "Failed to complete request",
+        placement: "topRight",
+      });
+    } finally {
+      setCompletingRequest(false);
+    }
+  };
+
   const canEditPrice =
     userRole === "superAdmin" ||
     (userRole !== "patient" &&
@@ -734,6 +772,9 @@ export default function RequestDetails() {
 
   const canCancelRequest =
     request?.status === "accepted" && userRole === "superAdmin";
+
+  const canCompleteRequest =
+    userRole === "superAdmin" && request?.status === "accepted";
 
   const filteredNurses = availableNurses.filter(
     (nurse) =>
@@ -971,11 +1012,7 @@ export default function RequestDetails() {
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{
-                  duration: 0.5,
-                  delay: 0.6,
-                  ease: "easeOut",
-                }}
+                transition={{ duration: 0.5, delay: 0.6, ease: "easeOut" }}
               >
                 {userRole === "superAdmin" &&
                   request.status !== "cancelled" && (
@@ -996,6 +1033,22 @@ export default function RequestDetails() {
                     icon={<CheckOutlined />}
                   >
                     Approve Request
+                  </Button>
+                )}
+                {canCompleteRequest && (
+                  <Button
+                    type="primary"
+                    onClick={handleCompleteRequest}
+                    loading={completingRequest}
+                    icon={<CheckOutlined />}
+                    style={{
+                      marginLeft: 8,
+                      marginRight: 8,
+                      background: "#52c41a",
+                      borderColor: "#52c41a",
+                    }}
+                  >
+                    Complete Request
                   </Button>
                 )}
                 {canCancelRequest && (
