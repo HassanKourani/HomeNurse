@@ -1121,9 +1121,7 @@ export default function RequestDetails() {
                       >
                         <Text type="secondary">Total Hours:</Text>
                         <Text>{nurse.working_hours || 0} hours</Text>
-                        {(userRole === "superAdmin" ||
-                          (userRole !== "patient" &&
-                            nurse.id === user?.id)) && (
+                        {userRole === "superAdmin" && (
                           <Button
                             type="link"
                             icon={<ClockCircleOutlined />}

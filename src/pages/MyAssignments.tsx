@@ -31,7 +31,20 @@ type DatabaseResponse = {
     location: string;
     area: string;
   };
-  nurse_id: string;
+  working_hours: number;
+};
+
+// Add type for raw data from Supabase
+type RawAssignmentData = {
+  request: {
+    id: string;
+    service_type: DatabaseResponse["service_type"];
+    details: string;
+    status: DatabaseResponse["status"];
+    created_at: string;
+    patient: DatabaseResponse["patient"];
+  };
+  working_hours: number;
 };
 
 const PageContainer = styled(motion.div)`
@@ -264,43 +277,61 @@ export default function MyAssignments() {
 
       try {
         const { data, error } = await supabase
-          .from("requests")
+          .from("request_nurse_assignments")
           .select(
             `
-            id,
-            service_type,
-            details,
-            status,
-            created_at,
-            assigned_nurse_id,
-            patient:profiles!fk_patient (
-              full_name,
-              phone_number,
-              location,
-              area
-            )
+            request:requests (
+              id,
+              service_type,
+              details,
+              status,
+              created_at,
+              patient:profiles!fk_patient (
+                full_name,
+                phone_number,
+                location,
+                area
+              )
+            ),
+            working_hours
           `
           )
-          .eq("assigned_nurse_id", user.id)
-          .order("created_at", { ascending: false });
+          .eq("nurse_id", user.id)
+          .order("request(created_at)", { ascending: false });
 
         if (error) throw error;
 
         if (data) {
-          const validData = data.filter(
-            (item) =>
-              item.id &&
-              item.service_type &&
-              item.details &&
-              item.status &&
-              item.created_at &&
-              item.patient &&
-              typeof item.patient === "object" &&
-              "full_name" in item.patient &&
-              "phone_number" in item.patient &&
-              "location" in item.patient &&
-              "area" in item.patient
-          ) as unknown as DatabaseResponse[];
+          const validData = (data as unknown as RawAssignmentData[])
+            .filter((item) => {
+              if (!item?.request) return false;
+              const request = item.request;
+              return (
+                request &&
+                typeof request === "object" &&
+                "id" in request &&
+                "service_type" in request &&
+                "details" in request &&
+                "status" in request &&
+                "created_at" in request &&
+                "patient" in request &&
+                request.patient &&
+                typeof request.patient === "object" &&
+                "full_name" in request.patient &&
+                "phone_number" in request.patient &&
+                "location" in request.patient &&
+                "area" in request.patient
+              );
+            })
+            .map((item) => ({
+              id: item.request.id,
+              service_type: item.request.service_type,
+              details: item.request.details,
+              status: item.request.status,
+              created_at: item.request.created_at,
+              patient: item.request.patient,
+              working_hours: item.working_hours || 0,
+            })) as DatabaseResponse[];
 
           setRequests(validData);
         }
@@ -362,6 +393,13 @@ export default function MyAssignments() {
       width: 120,
     },
     {
+      title: "Working Hours",
+      dataIndex: "working_hours",
+      key: "working_hours",
+      render: (hours: number) => <Text strong>{hours || 0} hours</Text>,
+      width: 150,
+    },
+    {
       title: "Details",
       dataIndex: "details",
       key: "details",
@@ -409,6 +447,10 @@ export default function MyAssignments() {
           <span className="value">
             {request.patient.area} - {request.patient.location}
           </span>
+        </div>
+        <div className="card-item">
+          <span className="label">Working Hours</span>
+          <span className="value">{request.working_hours || 0} hours</span>
         </div>
         <div className="card-item">
           <span className="label">Details</span>
