@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Table, Typography, Tag, Button, message, Card } from "antd";
+import { Table, Typography, Tag, Button, Card } from "antd";
 import { motion } from "framer-motion";
 import styled from "styled-components";
 import supabase from "../utils/supabase";
 import { useNavigate } from "react-router-dom";
 import { HomeOutlined, EyeOutlined } from "@ant-design/icons";
 import { useAuth } from "../utils/AuthContext";
+import { useNotification } from "../utils/NotificationProvider";
 
 const { Title, Text } = Typography;
 
@@ -270,6 +271,7 @@ export default function MyAssignments() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const notification = useNotification();
 
   useEffect(() => {
     const fetchAssignments = async () => {
@@ -337,14 +339,18 @@ export default function MyAssignments() {
         }
       } catch (error) {
         console.error("Error fetching assignments:", error);
-        message.error("Failed to fetch assignments");
+        notification.error({
+          message: "Error",
+          description: "Failed to fetch assignments",
+          placement: "topRight",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchAssignments();
-  }, [user?.id]);
+  }, [user?.id, notification]);
 
   const columns = [
     {

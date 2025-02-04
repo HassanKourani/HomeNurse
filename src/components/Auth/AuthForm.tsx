@@ -1,16 +1,8 @@
 import { useState } from "react";
-import {
-  Form,
-  Input,
-  Button,
-  Alert,
-  Card,
-  Select,
-  Typography,
-  message,
-} from "antd";
+import { Form, Input, Button, Alert, Card, Select, Typography } from "antd";
 import styled from "styled-components";
 import { useAuth } from "../../utils/AuthContext";
+import { useNotification } from "../../utils/NotificationProvider";
 import {
   UserOutlined,
   LockOutlined,
@@ -189,6 +181,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
   const { signIn, signUp } = useAuth();
   const [form] = Form.useForm();
+  const notification = useNotification();
 
   const handleSubmit = async (values: SignUpFormValues | SignInFormValues) => {
     setError(null);
@@ -202,12 +195,20 @@ export default function AuthForm({ mode }: AuthFormProps) {
           phone_number,
           role,
         });
-        message.success("Account created successfully");
+        notification.success({
+          message: "Success",
+          description: "Account created successfully",
+          placement: "topRight",
+        });
         form.resetFields();
       } else {
         const { email, password } = values as SignInFormValues;
         await signIn(email, password);
-        message.success("Sign in successful");
+        notification.success({
+          message: "Success",
+          description: "Sign in successful",
+          placement: "topRight",
+        });
         form.resetFields();
       }
     } catch (err) {

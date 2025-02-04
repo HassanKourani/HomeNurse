@@ -4,7 +4,6 @@ import {
   Card,
   Tag,
   Button,
-  message,
   Descriptions,
   Input,
   Spin,
@@ -32,6 +31,7 @@ import {
 } from "@ant-design/icons";
 import { useAuth } from "../utils/AuthContext";
 import dayjs from "dayjs";
+import { useNotification } from "../utils/NotificationProvider";
 
 const { Title, Text } = Typography;
 
@@ -342,6 +342,7 @@ export default function RequestDetails() {
   );
   const [loadingHoursLog, setLoadingHoursLog] = useState(false);
   const [form] = Form.useForm();
+  const notificationApi = useNotification();
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -433,7 +434,11 @@ export default function RequestDetails() {
         setNewVisitDate(requestData.visit_date || null);
       } catch (error) {
         console.error("Error in request details:", error);
-        message.error("An unexpected error occurred");
+        notificationApi.error({
+          message: "Error",
+          description: "An unexpected error occurred",
+          placement: "topRight",
+        });
         if (
           error &&
           typeof error === "object" &&
@@ -448,7 +453,7 @@ export default function RequestDetails() {
     };
 
     fetchRequestDetails();
-  }, [id, navigate]);
+  }, [id, navigate, notificationApi]);
 
   useEffect(() => {
     const fetchAvailableNurses = async () => {
@@ -463,7 +468,11 @@ export default function RequestDetails() {
         setAvailableNurses(data || []);
       } catch (error) {
         console.error("Error fetching nurses:", error);
-        message.error("Failed to fetch available nurses");
+        notificationApi.error({
+          message: "Error",
+          description: "Failed to fetch available nurses",
+          placement: "topRight",
+        });
       }
     };
 
@@ -484,7 +493,11 @@ export default function RequestDetails() {
 
       if (error) {
         console.error("Error updating price:", error);
-        message.error("Failed to update price");
+        notificationApi.error({
+          message: "Error",
+          description: "Failed to update price",
+          placement: "topRight",
+        });
         return;
       }
 
@@ -493,10 +506,18 @@ export default function RequestDetails() {
         prev ? { ...prev, price: parseFloat(newPrice) } : null
       );
       setEditingPrice(false);
-      message.success("Price updated successfully");
+      notificationApi.success({
+        message: "Success",
+        description: "Price updated successfully",
+        placement: "topRight",
+      });
     } catch (error) {
       console.error("Error updating price:", error);
-      message.error("Failed to update price");
+      notificationApi.error({
+        message: "Error",
+        description: "Failed to update price",
+        placement: "topRight",
+      });
     } finally {
       setSavingPrice(false);
     }
@@ -514,7 +535,11 @@ export default function RequestDetails() {
 
       if (error) {
         console.error("Error updating visit date:", error);
-        message.error("Failed to update visit date");
+        notificationApi.error({
+          message: "Error",
+          description: "Failed to update visit date",
+          placement: "topRight",
+        });
         return;
       }
 
@@ -523,10 +548,18 @@ export default function RequestDetails() {
         prev ? { ...prev, visit_date: newVisitDate } : null
       );
       setEditingVisitDate(false);
-      message.success("Visit date updated successfully");
+      notificationApi.success({
+        message: "Success",
+        description: "Visit date updated successfully",
+        placement: "topRight",
+      });
     } catch (error) {
       console.error("Error updating visit date:", error);
-      message.error("Failed to update visit date");
+      notificationApi.error({
+        message: "Error",
+        description: "Failed to update visit date",
+        placement: "topRight",
+      });
     } finally {
       setSavingVisitDate(false);
     }
@@ -544,7 +577,11 @@ export default function RequestDetails() {
 
       if (error) {
         console.error("Error approving request:", error);
-        message.error("Failed to approve request");
+        notificationApi.error({
+          message: "Error",
+          description: "Failed to approve request",
+          placement: "topRight",
+        });
         return;
       }
 
@@ -557,7 +594,11 @@ export default function RequestDetails() {
 
       if (nurseError) {
         console.error("Error fetching nurse details:", nurseError);
-        message.error("Failed to fetch nurse details");
+        notificationApi.error({
+          message: "Error",
+          description: "Failed to fetch nurse details",
+          placement: "topRight",
+        });
         return;
       }
 
@@ -571,10 +612,18 @@ export default function RequestDetails() {
             }
           : null
       );
-      message.success("Request approved successfully");
+      notificationApi.success({
+        message: "Success",
+        description: "Request approved successfully",
+        placement: "topRight",
+      });
     } catch (error) {
       console.error("Error approving request:", error);
-      message.error("Failed to approve request");
+      notificationApi.error({
+        message: "Error",
+        description: "Failed to approve request",
+        placement: "topRight",
+      });
     } finally {
       setApprovingRequest(false);
     }
@@ -591,7 +640,11 @@ export default function RequestDetails() {
 
       if (error) {
         console.error("Error removing nurse:", error);
-        message.error("Failed to remove nurse");
+        notificationApi.error({
+          message: "Error",
+          description: "Failed to remove nurse",
+          placement: "topRight",
+        });
         return;
       }
 
@@ -608,10 +661,18 @@ export default function RequestDetails() {
             }
           : null
       );
-      message.success("Nurse removed successfully");
+      notificationApi.success({
+        message: "Success",
+        description: "Nurse removed successfully",
+        placement: "topRight",
+      });
     } catch (error) {
       console.error("Error removing nurse:", error);
-      message.error("Failed to remove nurse");
+      notificationApi.error({
+        message: "Error",
+        description: "Failed to remove nurse",
+        placement: "topRight",
+      });
     }
   };
 
@@ -626,7 +687,11 @@ export default function RequestDetails() {
 
       if (error) {
         console.error("Error cancelling request:", error);
-        message.error("Failed to cancel request");
+        notificationApi.error({
+          message: "Error",
+          description: "Failed to cancel request",
+          placement: "topRight",
+        });
         return;
       }
 
@@ -639,10 +704,18 @@ export default function RequestDetails() {
             }
           : null
       );
-      message.success("Request cancelled successfully");
+      notificationApi.success({
+        message: "Success",
+        description: "Request cancelled successfully",
+        placement: "topRight",
+      });
     } catch (error) {
       console.error("Error cancelling request:", error);
-      message.error("Failed to cancel request");
+      notificationApi.error({
+        message: "Error",
+        description: "Failed to cancel request",
+        placement: "topRight",
+      });
     } finally {
       setCancellingRequest(false);
     }
@@ -654,6 +727,7 @@ export default function RequestDetails() {
       request?.assigned_nurses.some((nurse) => nurse.id === user?.id));
 
   const canApproveRequest =
+    userRole &&
     userRole !== "patient" &&
     !request?.assigned_nurses.length &&
     request?.status === "pending";
@@ -722,9 +796,17 @@ export default function RequestDetails() {
     setNurseSearchQuery("");
 
     if (hasError) {
-      message.warning("Some nurses could not be assigned");
+      notificationApi.warning({
+        message: "Warning",
+        description: "Some nurses could not be assigned",
+        placement: "topRight",
+      });
     } else {
-      message.success("Nurses assigned successfully");
+      notificationApi.success({
+        message: "Success",
+        description: "Nurses assigned successfully",
+        placement: "topRight",
+      });
     }
   };
 
@@ -742,7 +824,11 @@ export default function RequestDetails() {
       setWorkingHoursLogs(data || []);
     } catch (error) {
       console.error("Error fetching working hours logs:", error);
-      message.error("Failed to fetch working hours history");
+      notificationApi.error({
+        message: "Error",
+        description: "Failed to fetch working hours history",
+        placement: "topRight",
+      });
     } finally {
       setLoadingHoursLog(false);
     }
@@ -762,7 +848,11 @@ export default function RequestDetails() {
 
       if (error) throw error;
 
-      message.success("Working hours logged successfully");
+      notificationApi.success({
+        message: "Success",
+        description: "Working hours logged successfully",
+        placement: "topRight",
+      });
       form.resetFields();
       fetchWorkingHoursLogs(selectedNurseForHours.id);
 
@@ -804,7 +894,11 @@ export default function RequestDetails() {
       }
     } catch (error) {
       console.error("Error logging working hours:", error);
-      message.error("Failed to log working hours");
+      notificationApi.error({
+        message: "Error",
+        description: "Failed to log working hours",
+        placement: "topRight",
+      });
     }
   };
 

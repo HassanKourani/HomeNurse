@@ -29,10 +29,12 @@ import {
   MailOutlined,
   HomeOutlined,
 } from "@ant-design/icons";
+import { NotificationProvider } from "./utils/NotificationProvider";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
 
+// Remove old message configuration
 const StyledLayout = styled(Layout)`
   min-height: 100vh;
   background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
@@ -709,26 +711,28 @@ function App() {
 
 function AppWithProvider() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/nurses" element={<NursesManagement />} />
-          <Route
-            path="/regular-care-requests"
-            element={<RegularCareRequests />}
-          />
-          <Route
-            path="/psychiatric-requests"
-            element={<PsychiatricCareRequests />}
-          />
-          <Route path="/quick-requests" element={<QuickServiceRequests />} />
-          <Route path="/my-assignments" element={<MyAssignments />} />
-          <Route path="/request/:id" element={<RequestDetails />} />
-          <Route path="/*" element={<App />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <NotificationProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/nurses" element={<NursesManagement />} />
+            <Route
+              path="/regular-care-requests"
+              element={<RegularCareRequests />}
+            />
+            <Route
+              path="/psychiatric-requests"
+              element={<PsychiatricCareRequests />}
+            />
+            <Route path="/quick-requests" element={<QuickServiceRequests />} />
+            <Route path="/my-assignments" element={<MyAssignments />} />
+            <Route path="/request/:id" element={<RequestDetails />} />
+            <Route path="/*" element={<App />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </NotificationProvider>
   );
 }
 

@@ -6,7 +6,6 @@ import {
   Card,
   Upload,
   Select,
-  message,
   Steps,
   Space,
   Modal,
@@ -18,6 +17,8 @@ import type { UploadChangeParam, UploadFile } from "antd/es/upload";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import supabase from "../../utils/supabase";
+import { useNotification } from "../../utils/NotificationProvider";
+import { useNavigate } from "react-router-dom";
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -125,6 +126,12 @@ const FormSection = styled.div`
   flex: 1;
   max-width: 600px;
   width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+
+  @media (max-width: 576px) {
+    padding: 0 8px;
+  }
 `;
 
 const MainTitle = styled.h1`
@@ -195,9 +202,14 @@ const StyledCard = styled(Card)`
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: none;
+  max-width: 100%;
+  overflow: hidden;
 
   .ant-card-body {
     padding: 32px;
+    @media (max-width: 576px) {
+      padding: 24px 16px;
+    }
   }
 
   .ant-form-item-label > label {
@@ -216,6 +228,20 @@ const StyledCard = styled(Card)`
     &:focus {
       border-color: #1890ff;
       box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+    }
+  }
+
+  .ant-select-selection-item {
+    white-space: normal;
+    text-align: left;
+  }
+
+  .ant-select-dropdown {
+    .ant-select-item {
+      white-space: normal;
+      padding: 8px 12px;
+      min-height: 32px;
+      height: auto;
     }
   }
 
@@ -325,6 +351,9 @@ export default function LandingForm() {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const notification = useNotification();
+  const navigate = useNavigate();
 
   const handleSubmit = async () => {
     try {
@@ -370,33 +399,40 @@ export default function LandingForm() {
       }
 
       // 3. Create request
-      const { error: requestError } = await supabase.from("requests").insert([
-        {
-          patient_id: profileData.id,
-          service_type: formValues.service_type,
-          details: formValues.details,
-          status: "pending",
-          image_id: imageId,
-          created_at: new Date().toISOString(),
-        },
-      ]);
+      const { data: requestData, error: requestError } = await supabase
+        .from("requests")
+        .insert([
+          {
+            patient_id: profileData.id,
+            service_type: formValues.service_type,
+            details: formValues.details,
+            status: "pending",
+            image_id: imageId,
+            created_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single();
 
       if (requestError) {
         console.error("Request Error:", requestError);
         throw new Error("Failed to create request");
       }
 
-      // Show success modal instead of message
+      setRequestId(requestData.id);
       setShowSuccessModal(true);
       form.resetFields();
       setImageFile(null);
     } catch (error) {
       console.error("Error:", error);
-      message.error(
-        error instanceof Error
-          ? error.message
-          : "An error occurred. Please try again."
-      );
+      notification.error({
+        message: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An error occurred. Please try again.",
+        placement: "topRight",
+      });
     } finally {
       setLoading(false);
     }
@@ -754,6 +790,7 @@ export default function LandingForm() {
                 key="check"
                 type="primary"
                 size="large"
+                onClick={() => navigate(`/request/${requestId}`)}
                 style={{ marginBottom: 10, width: "100%" }}
               >
                 Track Request Status

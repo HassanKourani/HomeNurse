@@ -1,10 +1,11 @@
 import { useEffect } from "react";
-import { Layout, Typography, message } from "antd";
+import { Layout, Typography } from "antd";
 import styled from "styled-components";
 import AuthForm from "../components/Auth/AuthForm";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../utils/AuthContext";
 import supabase from "../utils/supabase";
+import { useNotification } from "../utils/NotificationProvider";
 
 const { Title, Text } = Typography;
 
@@ -90,11 +91,16 @@ const StyledLink = styled(Link)`
 export default function SignupPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const notification = useNotification();
 
   useEffect(() => {
     const checkAccess = async () => {
       if (!user) {
-        message.error("Please sign in first");
+        notification.error({
+          message: "Error",
+          description: "Please sign in first",
+          placement: "topRight",
+        });
         navigate("/");
         return;
       }
@@ -106,13 +112,17 @@ export default function SignupPage() {
         .single();
 
       if (profile?.role !== "superAdmin") {
-        message.error("You don't have permission to access this page");
+        notification.error({
+          message: "Error",
+          description: "You don't have permission to access this page",
+          placement: "topRight",
+        });
         navigate("/");
       }
     };
 
     checkAccess();
-  }, [user, navigate]);
+  }, [user, navigate, notification]);
 
   return (
     <StyledLayout>
