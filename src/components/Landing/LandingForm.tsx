@@ -59,17 +59,15 @@ type LandingFormValues = {
 };
 
 const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
-  full_time_private_normal: "Full time private (الرعاية المنزلية المستمرة)",
-  full_time_private_psychiatric:
-    "Full time psychiatric (الرعاية المنزلية المستمرة للمرضى الذين يعانون من أمراض الأعصاب)",
-  part_time_private_normal: "Part time private (الرعاية المنزلية الجزئية)",
-  part_time_private_psychiatric:
-    "Part time psychiatric (الرعاية المنزلية الجزئية للمرضى الذين يعانون من أمراض الأعصاب)",
-  blood_test: "Blood test (اختبار الدم)",
-  im: "Intramuscular (IM, الحقن العضلي) ",
-  iv: "Intravenous (IV, مصل الجسم) ",
-  patient_care: "Care for patients (الرعاية للمرضى)",
-  hemo_vs: "Hemo+ v/s (الرعاية للمرضى الذين يعانون من أمراض الأورام)",
+  full_time_private_normal: "Full time private",
+  full_time_private_psychiatric: "Full time psychiatric",
+  part_time_private_normal: "Part time private",
+  part_time_private_psychiatric: "Part time psychiatric",
+  blood_test: "Blood test",
+  im: "Intramuscular (IM)",
+  iv: "Intravenous (IV)",
+  patient_care: "Care for patients",
+  hemo_vs: "Hemo+ v/s",
   other: "Other",
 };
 
@@ -739,9 +737,9 @@ export default function LandingForm() {
           >
             {(
               Object.entries(SERVICE_TYPE_LABELS) as [ServiceType, string][]
-            ).map(([value, label]) => (
+            ).map(([value]) => (
               <Select.Option key={value} value={value}>
-                {label}
+                {t(`form.fields.serviceTypes.${value}`)}
               </Select.Option>
             ))}
           </FixedWidthSelect>
@@ -764,12 +762,7 @@ export default function LandingForm() {
         </Form.Item>
 
         <Form.Item
-          label={
-            t("form.fields.document.label") +
-            " (" +
-            t("form.fields.optional") +
-            ")"
-          }
+          label={t("form.fields.document.label")}
           tooltip={t("form.fields.document.tooltip")}
         >
           <Upload

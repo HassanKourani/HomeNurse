@@ -68,6 +68,18 @@
       "document": {
         "label": "Document Justificatif (Optionnel)",
         "upload": "Cliquez pour Télécharger"
+      },
+      "serviceTypes": {
+        "full_time_private_normal": "Soins privés à temps plein",
+        "full_time_private_psychiatric": "Soins psychiatriques à temps plein",
+        "part_time_private_normal": "Soins privés à temps partiel",
+        "part_time_private_psychiatric": "Soins psychiatriques à temps partiel",
+        "blood_test": "Test sanguin",
+        "im": "Intramusculaire (IM)",
+        "iv": "Intraveineuse (IV)",
+        "patient_care": "Soins aux patients",
+        "hemo_vs": "Hémo+ s/v",
+        "other": "Autre"
       }
     },
     "buttons": {

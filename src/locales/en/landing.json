@@ -66,12 +66,24 @@
         "placeholder": "Please describe your needs and any relevant medical conditions"
       },
       "document": {
-        "label": "Supporting Document",
+        "label": "Supporting Document (Optional)",
         "upload": "Upload",
         "supportedFormats": "Supported formats: Images (JPG, PNG), Documents (PDF, DOC, DOCX), Spreadsheets (XLS, XLSX), Text files (TXT, RTF)",
         "tooltip": "You can upload any relevant medical documents, prescriptions, or test results"
       },
-      "optional": "Optional"
+      "optional": "Optional",
+      "serviceTypes": {
+        "full_time_private_normal": "Full time private",
+        "full_time_private_psychiatric": "Full time psychiatric",
+        "part_time_private_normal": "Part time private",
+        "part_time_private_psychiatric": "Part time psychiatric",
+        "blood_test": "Blood test",
+        "im": "Intramuscular (IM)",
+        "iv": "Intravenous (IV)",
+        "patient_care": "Care for patients",
+        "hemo_vs": "Hemo+ v/s",
+        "other": "Other"
+      }
     },
     "buttons": {
       "previous": "Previous",
