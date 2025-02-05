@@ -28,6 +28,9 @@ import {
   UserAddOutlined,
   SearchOutlined,
   ClockCircleOutlined,
+  FileOutlined,
+  EyeOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../utils/AuthContext";
 import dayjs from "dayjs";
@@ -53,6 +56,7 @@ type RequestDetails = {
   created_at: string;
   price: number | null;
   visit_date: string | null;
+  image_id: string | null;
   assigned_nurses: Array<{
     id: string;
     full_name: string;
@@ -333,6 +337,51 @@ const logOneHourForNurse = async (nurseId: string, requestId: number) => {
   }
 };
 
+const ViewDocumentButton = styled(Button)`
+  margin-left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const DocumentModal = styled(Modal)`
+  .ant-modal-content {
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .ant-modal-body {
+    padding: 24px;
+    text-align: center;
+  }
+
+  .document-container {
+    max-height: 80vh;
+    overflow: auto;
+    margin: -24px;
+
+    img,
+    object {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+  }
+
+  .document-actions {
+    position: sticky;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    border-top: 1px solid #f0f0f0;
+  }
+`;
+
 export default function RequestDetails() {
   const [request, setRequest] = useState<RequestDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -373,6 +422,9 @@ export default function RequestDetails() {
   const [loadingHoursLog, setLoadingHoursLog] = useState(false);
   const [form] = Form.useForm();
   const notificationApi = useNotification();
+  const [isDocumentModalVisible, setIsDocumentModalVisible] = useState(false);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [documentType, setDocumentType] = useState<string>("");
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -407,6 +459,7 @@ export default function RequestDetails() {
             created_at,
             price,
             visit_date,
+            image_id,
             patient:profiles!fk_patient (
               full_name,
               phone_number,
@@ -1032,6 +1085,56 @@ export default function RequestDetails() {
     }
   };
 
+  const handleViewDocument = async () => {
+    if (!request?.image_id) return;
+
+    try {
+      // Get the public URL for the file
+      const { data } = await supabase.storage
+        .from("request-images")
+        .getPublicUrl(request.image_id);
+
+      if (data?.publicUrl) {
+        setDocumentUrl(data.publicUrl);
+        // Get file extension
+        const fileExt = request.image_id.split(".").pop()?.toLowerCase() || "";
+        setDocumentType(fileExt);
+        setIsDocumentModalVisible(true);
+      }
+    } catch (error) {
+      console.error("Error getting document URL:", error);
+      notificationApi.error({
+        message: "Error",
+        description: "Failed to load the document",
+        placement: "topRight",
+      });
+    }
+  };
+
+  const handleDownloadDocument = async () => {
+    if (!request?.image_id || !documentUrl) return;
+
+    try {
+      const response = await fetch(documentUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = request.image_id.split("/").pop() || "document";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      notificationApi.error({
+        message: "Error",
+        description: "Failed to download the document",
+        placement: "topRight",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <PageContainer>
@@ -1330,7 +1433,19 @@ export default function RequestDetails() {
               )}
             </Descriptions.Item>
             <Descriptions.Item label="Details" span={2}>
-              {request.details}
+              <div style={{ display: "flex", alignItems: "flex-start" }}>
+                <div style={{ flex: 1 }}>{request.details}</div>
+                {request.image_id && (
+                  <ViewDocumentButton
+                    type="primary"
+                    ghost
+                    icon={<FileOutlined />}
+                    onClick={handleViewDocument}
+                  >
+                    View Document
+                  </ViewDocumentButton>
+                )}
+              </div>
             </Descriptions.Item>
             {request.assigned_nurses && request.assigned_nurses.length > 0 && (
               <Descriptions.Item label="Assigned Nurses" span={2}>
@@ -1558,6 +1673,51 @@ export default function RequestDetails() {
           />
         </div>
       </Modal>
+
+      <DocumentModal
+        title="Document Preview"
+        open={isDocumentModalVisible}
+        onCancel={() => setIsDocumentModalVisible(false)}
+        footer={null}
+        width={1000}
+        centered
+      >
+        <div className="document-container">
+          {documentUrl &&
+            (["jpg", "jpeg", "png", "gif"].includes(documentType) ? (
+              <img
+                src={documentUrl}
+                alt="Document preview"
+                style={{ maxWidth: "100%" }}
+              />
+            ) : (
+              <object
+                data={documentUrl}
+                type="application/pdf"
+                width="100%"
+                height="800px"
+              >
+                <p>Unable to display document. Please download to view.</p>
+              </object>
+            ))}
+        </div>
+        <div className="document-actions">
+          <Button
+            icon={<EyeOutlined />}
+            href={documentUrl ? documentUrl : undefined}
+            target="_blank"
+          >
+            Open in New Tab
+          </Button>
+          <Button
+            type="primary"
+            icon={<DownloadOutlined />}
+            onClick={handleDownloadDocument}
+          >
+            Download
+          </Button>
+        </div>
+      </DocumentModal>
     </PageContainer>
   );
 }

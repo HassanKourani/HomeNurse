@@ -66,9 +66,12 @@
         "placeholder": "Please describe your needs and any relevant medical conditions"
       },
       "document": {
-        "label": "Supporting Document (Optional)",
-        "upload": "Click to Upload"
-      }
+        "label": "Supporting Document",
+        "upload": "Upload",
+        "supportedFormats": "Supported formats: Images (JPG, PNG), Documents (PDF, DOC, DOCX), Spreadsheets (XLS, XLSX), Text files (TXT, RTF)",
+        "tooltip": "You can upload any relevant medical documents, prescriptions, or test results"
+      },
+      "optional": "Optional"
     },
     "buttons": {
       "previous": "Previous",

@@ -18,7 +18,6 @@ import {
   CheckCircleFilled,
   GlobalOutlined,
 } from "@ant-design/icons";
-import type { UploadChangeParam, UploadFile } from "antd/es/upload";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import supabase from "../../utils/supabase";
@@ -443,6 +442,8 @@ export default function LandingForm() {
   const handleSubmit = async () => {
     try {
       setLoading(true);
+      console.log("handleSubmit - starting submission");
+      console.log("handleSubmit - imageFile:", imageFile);
 
       // Validate all fields first and get the validated values
       const formValues = await form.validateFields();
@@ -467,20 +468,27 @@ export default function LandingForm() {
         console.error("Profile Error:", profileError);
         throw new Error("Failed to create profile");
       }
+      console.log("handleSubmit - profile created:", profileData);
 
       // 2. Upload image if exists
       let imageId = null;
       if (imageFile) {
+        console.log("handleSubmit - starting image upload");
         const fileExt = imageFile.name.split(".").pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `request-images/${fileName}`;
+        console.log("handleSubmit - uploading to path:", filePath);
 
         const { error: uploadError, data } = await supabase.storage
           .from("request-images")
           .upload(filePath, imageFile);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("Upload Error:", uploadError);
+          throw uploadError;
+        }
         imageId = data.path;
+        console.log("handleSubmit - image uploaded successfully:", imageId);
       }
 
       // 3. Create request
@@ -520,12 +528,6 @@ export default function LandingForm() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleImageChange = (info: UploadChangeParam<UploadFile>) => {
-    if (info.file.status === "done") {
-      setImageFile(info.file.originFileObj as File);
     }
   };
 
@@ -700,16 +702,33 @@ export default function LandingForm() {
           />
         </Form.Item>
 
-        <Form.Item label={t("form.fields.document.label")}>
+        <Form.Item
+          label={
+            t("form.fields.document.label") +
+            " (" +
+            t("form.fields.optional") +
+            ")"
+          }
+          tooltip={t("form.fields.document.tooltip")}
+        >
           <Upload
             maxCount={1}
-            beforeUpload={() => false}
-            onChange={handleImageChange}
+            beforeUpload={(file) => {
+              setImageFile(file);
+              return false;
+            }}
+            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.txt,.rtf,.odt,.ods"
           >
             <Button icon={<UploadOutlined />}>
               {t("form.fields.document.upload")}
             </Button>
           </Upload>
+          <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
+            {t("form.fields.document.supportedFormats", {
+              defaultValue:
+                "Supported formats: Images (JPG, PNG), Documents (PDF, DOC, DOCX), Spreadsheets (XLS, XLSX), Text files (TXT, RTF)",
+            })}
+          </div>
         </Form.Item>
       </motion.div>,
     ];
