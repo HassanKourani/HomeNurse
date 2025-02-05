@@ -22,6 +22,12 @@ type SignUpFormValues = {
   full_name: string;
   phone_number: string;
   role: "registered" | "licensed" | "practitioner";
+  area:
+    | "beirut"
+    | "mount_lebanon"
+    | "north_lebanon"
+    | "south_lebanon"
+    | "bekaa";
 };
 
 type SignInFormValues = {
@@ -188,12 +194,13 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
     try {
       if (mode === "signup") {
-        const { email, password, full_name, phone_number, role } =
+        const { email, password, full_name, phone_number, role, area } =
           values as SignUpFormValues;
         await signUp(email, password, {
           full_name,
           phone_number,
           role,
+          area,
         });
         notification.success({
           message: "Success",
@@ -266,8 +273,9 @@ export default function AuthForm({ mode }: AuthFormProps) {
               rules={[
                 { required: true, message: "Please input your phone number!" },
                 {
-                  pattern: /^\+?[1-9]\d{1,14}$/,
-                  message: "Please enter a valid phone number!",
+                  pattern: /^[0-9\s-]+$/,
+                  message:
+                    "Please enter a valid phone number (only numbers, spaces, and hyphens allowed)",
                 },
               ]}
             >
@@ -275,6 +283,26 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 prefix={<PhoneOutlined className="site-form-item-icon" />}
                 placeholder="Enter your phone number"
               />
+            </Form.Item>
+
+            <Form.Item
+              label="Area"
+              name="area"
+              rules={[{ required: true, message: "Please select your area!" }]}
+            >
+              <Select placeholder="Select your area">
+                <Select.Option value="beirut">Beirut</Select.Option>
+                <Select.Option value="mount_lebanon">
+                  Mount Lebanon
+                </Select.Option>
+                <Select.Option value="north_lebanon">
+                  North Lebanon
+                </Select.Option>
+                <Select.Option value="south_lebanon">
+                  South Lebanon
+                </Select.Option>
+                <Select.Option value="bekaa">Bekaa</Select.Option>
+              </Select>
             </Form.Item>
 
             <Form.Item

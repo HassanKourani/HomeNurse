@@ -25,6 +25,7 @@ import { useNotification } from "../../utils/NotificationProvider";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import "../../utils/i18n";
+import { sendNotificationToNurses } from "../../utils/emailUtils";
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -567,6 +568,28 @@ export default function LandingForm() {
       if (requestError) {
         console.error("Request Error:", requestError);
         throw new Error("Failed to create request");
+      }
+
+      // 4. Send email notifications
+      try {
+        await sendNotificationToNurses({
+          patientName: formValues.full_name,
+          patientArea: formValues.area,
+          patientLocation: formValues.location,
+          serviceType: formValues.service_type,
+          details: formValues.details,
+          imageUrl: imageId
+            ? `${window.location.origin}/request-images/${imageId}`
+            : undefined,
+        });
+      } catch (emailError) {
+        console.error("Error sending email notifications:", emailError);
+        // Don't throw the error here, as we still want to show success even if emails fail
+        notification.warning({
+          message: "Warning",
+          description: "Request created but failed to send email notifications",
+          placement: "topRight",
+        });
       }
 
       setRequestId(requestData.id);

@@ -6,6 +6,12 @@ type ProfileData = {
   full_name: string;
   phone_number: string;
   role: "registered" | "licensed" | "practitioner";
+  area:
+    | "beirut"
+    | "mount_lebanon"
+    | "north_lebanon"
+    | "south_lebanon"
+    | "bekaa";
 };
 
 type AuthContextType = {
@@ -70,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           full_name: profileData.full_name,
           phone_number: profileData.phone_number,
           role: profileData.role,
+          area: profileData.area,
           updated_at: new Date().toISOString(),
         },
       ]);
