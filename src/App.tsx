@@ -337,13 +337,6 @@ const fadeInUp = {
   transition: { duration: 0.5 },
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const fadeIn = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  transition: { duration: 0.5 },
-};
-
 const DashboardGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
