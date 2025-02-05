@@ -203,6 +203,22 @@ const StyledCard = styled(Card)`
     }
   }
 
+  .ant-form-item {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .ant-form-item-control-input {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .ant-form-item-control-input-content {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .ant-form-item-label > label {
     color: #1a3d7c;
     font-weight: 500;
@@ -214,6 +230,7 @@ const StyledCard = styled(Card)`
     border-radius: 8px;
     border: 1px solid #d9d9d9;
     transition: all 0.3s;
+    max-width: 100%;
 
     &:hover,
     &:focus {
@@ -222,17 +239,36 @@ const StyledCard = styled(Card)`
     }
   }
 
+  .ant-select {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .ant-select-selector {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    padding: 4px 11px !important;
+  }
+
   .ant-select-selection-item {
-    white-space: normal;
-    text-align: left;
+    line-height: 1.5715;
+    padding-right: 20px !important;
+    max-width: calc(100% - 24px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   .ant-select-dropdown {
+    max-width: 100vw;
+
     .ant-select-item {
       white-space: normal;
       padding: 8px 12px;
       min-height: 32px;
       height: auto;
+      line-height: 1.5715;
     }
   }
 
@@ -360,16 +396,39 @@ const GlobalStyle = styled.div`
     text-align: ${(props) => (props.dir === "rtl" ? "right" : "left")};
   }
 
-  .ant-select-selection-item {
-    text-align: ${(props) => (props.dir === "rtl" ? "right" : "left")};
-  }
-
   .ant-modal-content {
     direction: ${(props) => props.dir};
   }
 
   .ant-result {
     direction: ${(props) => props.dir};
+  }
+`;
+
+const FixedWidthSelect = styled(Select)`
+  && {
+    display: block;
+    width: 100%;
+
+    .ant-select-selector {
+      width: 100% !important;
+      height: 32px !important;
+      padding: 0 11px !important;
+    }
+
+    .ant-select-selection-item {
+      position: absolute;
+      left: 11px;
+      right: 24px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 32px;
+    }
+
+    .ant-select-selection-placeholder {
+      line-height: 32px;
+    }
   }
 `;
 
@@ -675,7 +734,9 @@ export default function LandingForm() {
             },
           ]}
         >
-          <Select placeholder={t("form.fields.serviceType.placeholder")}>
+          <FixedWidthSelect
+            placeholder={t("form.fields.serviceType.placeholder")}
+          >
             {(
               Object.entries(SERVICE_TYPE_LABELS) as [ServiceType, string][]
             ).map(([value, label]) => (
@@ -683,7 +744,7 @@ export default function LandingForm() {
                 {label}
               </Select.Option>
             ))}
-          </Select>
+          </FixedWidthSelect>
         </Form.Item>
 
         <Form.Item
