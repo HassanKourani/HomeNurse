@@ -1,0 +1,92 @@
+{
+  "title": {
+    "part1": "Soins de Santé",
+    "part2": "Professionnels",
+    "part3": "À Votre Porte"
+  },
+  "slogan": "Bénéficiez de soins médicaux de qualité dans le confort de votre domicile avec notre équipe d'experts de la santé.",
+  "features": {
+    "expertStaff": {
+      "title": "Personnel Médical Expert",
+      "description": "Professionnels de santé qualifiés et expérimentés à votre service."
+    },
+    "247Care": {
+      "title": "Soins 24h/24 et 7j/7",
+      "description": "Support médical permanent quand vous en avez le plus besoin."
+    },
+    "quickResponse": {
+      "title": "Réponse Rapide",
+      "description": "Service rapide et efficace à votre emplacement."
+    },
+    "qualityAssured": {
+      "title": "Qualité Garantie",
+      "description": "Les plus hauts standards de soins médicaux et de satisfaction des patients."
+    }
+  },
+  "form": {
+    "title": "Demander des Soins Médicaux",
+    "subtitle": "Remplissez le formulaire ci-dessous et nos professionnels de santé vous contacteront rapidement",
+    "steps": {
+      "personalInfo": {
+        "title": "Informations Personnelles",
+        "description": "Informations de base"
+      },
+      "location": {
+        "title": "Localisation",
+        "description": "Votre adresse"
+      },
+      "service": {
+        "title": "Service",
+        "description": "Détails du service"
+      }
+    },
+    "fields": {
+      "fullName": {
+        "label": "Nom Complet",
+        "placeholder": "Entrez votre nom complet"
+      },
+      "phoneNumber": {
+        "label": "Numéro de Téléphone",
+        "placeholder": "Entrez votre numéro de téléphone"
+      },
+      "area": {
+        "label": "Zone",
+        "placeholder": "Sélectionnez votre zone"
+      },
+      "location": {
+        "label": "Détails de l'Emplacement",
+        "placeholder": "Veuillez fournir l'adresse détaillée (bâtiment, rue, points de repère)"
+      },
+      "serviceType": {
+        "label": "Type de Service",
+        "placeholder": "Sélectionnez le type de service dont vous avez besoin"
+      },
+      "details": {
+        "label": "Détails",
+        "placeholder": "Veuillez décrire vos besoins et toute condition médicale pertinente"
+      },
+      "document": {
+        "label": "Document Justificatif (Optionnel)",
+        "upload": "Cliquez pour Télécharger"
+      }
+    },
+    "buttons": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "submit": "Soumettre la Demande"
+    }
+  },
+  "success": {
+    "title": "Demande Soumise avec Succès !",
+    "subtitle": "Un de nos infirmiers professionnels vous contactera bientôt pour discuter de votre demande et vous proposer des options de soins personnalisés.",
+    "buttons": {
+      "track": "Suivre l'État de la Demande",
+      "home": "Retour à l'Accueil"
+    }
+  },
+  "language": {
+    "en": "English",
+    "ar": "العربية",
+    "fr": "Français"
+  }
+}

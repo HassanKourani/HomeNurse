@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Form,
   Input,
@@ -11,14 +11,21 @@ import {
   Modal,
   Result,
   Typography,
+  Dropdown,
 } from "antd";
-import { UploadOutlined, CheckCircleFilled } from "@ant-design/icons";
+import {
+  UploadOutlined,
+  CheckCircleFilled,
+  GlobalOutlined,
+} from "@ant-design/icons";
 import type { UploadChangeParam, UploadFile } from "antd/es/upload";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import supabase from "../../utils/supabase";
 import { useNotification } from "../../utils/NotificationProvider";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import "../../utils/i18n";
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -76,21 +83,6 @@ const AREA_LABELS: Record<Area, string> = {
 };
 
 const ENABLED_AREAS = ["beirut"];
-
-const steps = [
-  {
-    title: "Personal Info",
-    description: "Basic information",
-  },
-  {
-    title: "Location",
-    description: "Your address",
-  },
-  {
-    title: "Service",
-    description: "Service details",
-  },
-];
 
 const PageWrapper = styled.div`
   min-height: 100vh;
@@ -344,6 +336,44 @@ const stepVariants = {
   }),
 };
 
+const LanguageSwitcher = styled(Button)`
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1a3d7c;
+  color: white;
+
+  .anticon {
+    font-size: 16px;
+  }
+`;
+
+const GlobalStyle = styled.div`
+  .ant-form {
+    direction: ${(props) => props.dir};
+  }
+
+  .ant-form-item-label {
+    text-align: ${(props) => (props.dir === "rtl" ? "right" : "left")};
+  }
+
+  .ant-select-selection-item {
+    text-align: ${(props) => (props.dir === "rtl" ? "right" : "left")};
+  }
+
+  .ant-modal-content {
+    direction: ${(props) => props.dir};
+  }
+
+  .ant-result {
+    direction: ${(props) => props.dir};
+  }
+`;
+
 export default function LandingForm() {
   const [form] = Form.useForm<LandingFormValues>();
   const [loading, setLoading] = useState(false);
@@ -354,6 +384,61 @@ export default function LandingForm() {
   const [requestId, setRequestId] = useState<string | null>(null);
   const notification = useNotification();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+
+  const steps = [
+    {
+      title: t("form.steps.personalInfo.title"),
+      description: t("form.steps.personalInfo.description"),
+    },
+    {
+      title: t("form.steps.location.title"),
+      description: t("form.steps.location.description"),
+    },
+    {
+      title: t("form.steps.service.title"),
+      description: t("form.steps.service.description"),
+    },
+  ];
+
+  const changeLanguage = (lang: string) => {
+    i18n.changeLanguage(lang);
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    localStorage.setItem("preferred-language", lang);
+    form.resetFields();
+  };
+
+  useEffect(() => {
+    // Load saved language from localStorage or use browser language
+    const savedLanguage = localStorage.getItem("preferred-language");
+    if (savedLanguage && ["en", "ar", "fr"].includes(savedLanguage)) {
+      changeLanguage(savedLanguage);
+    } else {
+      const browserLang = navigator.language.split("-")[0];
+      const defaultLang = ["en", "ar", "fr"].includes(browserLang)
+        ? browserLang
+        : "en";
+      changeLanguage(defaultLang);
+    }
+  }, []);
+
+  const languageMenu = {
+    items: [
+      {
+        key: "en",
+        label: t("language.en"),
+      },
+      {
+        key: "ar",
+        label: t("language.ar"),
+      },
+      {
+        key: "fr",
+        label: t("language.fr"),
+      },
+    ],
+    onClick: ({ key }: { key: string }) => changeLanguage(key),
+  };
 
   const handleSubmit = async () => {
     try {
@@ -486,25 +571,30 @@ export default function LandingForm() {
         style={{ display: currentStep === 0 ? "block" : "none" }}
       >
         <Form.Item
-          label="Full Name"
+          label={t("form.fields.fullName.label")}
           name="full_name"
-          rules={[{ required: true, message: "Please input your full name!" }]}
+          rules={[
+            { required: true, message: t("form.fields.fullName.placeholder") },
+          ]}
         >
-          <Input placeholder="Enter your full name" />
+          <Input placeholder={t("form.fields.fullName.placeholder")} />
         </Form.Item>
 
         <Form.Item
-          label="Phone Number"
+          label={t("form.fields.phoneNumber.label")}
           name="phone_number"
           rules={[
-            { required: true, message: "Please input your phone number!" },
+            {
+              required: true,
+              message: t("form.fields.phoneNumber.placeholder"),
+            },
             {
               pattern: /^\+?[1-9]\d{1,14}$/,
               message: "Please enter a valid phone number!",
             },
           ]}
         >
-          <Input placeholder="Enter your phone number" />
+          <Input placeholder={t("form.fields.phoneNumber.placeholder")} />
         </Form.Item>
       </motion.div>,
 
@@ -522,11 +612,13 @@ export default function LandingForm() {
         style={{ display: currentStep === 1 ? "block" : "none" }}
       >
         <Form.Item
-          label="Area"
+          label={t("form.fields.area.label")}
           name="area"
-          rules={[{ required: true, message: "Please select your area!" }]}
+          rules={[
+            { required: true, message: t("form.fields.area.placeholder") },
+          ]}
         >
-          <Select placeholder="Select your area">
+          <Select placeholder={t("form.fields.area.placeholder")}>
             {(Object.entries(AREA_LABELS) as [Area, string][]).map(
               ([value, label]) => (
                 <Select.Option
@@ -542,18 +634,18 @@ export default function LandingForm() {
         </Form.Item>
 
         <Form.Item
-          label="Location Details"
+          label={t("form.fields.location.label")}
           name="location"
           rules={[
             {
               required: true,
-              message: "Please provide your location details!",
+              message: t("form.fields.location.placeholder"),
             },
           ]}
         >
           <TextArea
             rows={2}
-            placeholder="Please provide detailed address (building, street, nearby landmarks)"
+            placeholder={t("form.fields.location.placeholder")}
           />
         </Form.Item>
       </motion.div>,
@@ -572,11 +664,16 @@ export default function LandingForm() {
         style={{ display: currentStep === 2 ? "block" : "none" }}
       >
         <Form.Item
-          label="Service Type"
+          label={t("form.fields.serviceType.label")}
           name="service_type"
-          rules={[{ required: true, message: "Please select a service type!" }]}
+          rules={[
+            {
+              required: true,
+              message: t("form.fields.serviceType.placeholder"),
+            },
+          ]}
         >
-          <Select placeholder="Select the type of service you need">
+          <Select placeholder={t("form.fields.serviceType.placeholder")}>
             {(
               Object.entries(SERVICE_TYPE_LABELS) as [ServiceType, string][]
             ).map(([value, label]) => (
@@ -588,28 +685,30 @@ export default function LandingForm() {
         </Form.Item>
 
         <Form.Item
-          label="Details"
+          label={t("form.fields.details.label")}
           name="details"
           rules={[
             {
               required: true,
-              message: "Please provide details about your needs!",
+              message: t("form.fields.details.placeholder"),
             },
           ]}
         >
           <TextArea
             rows={4}
-            placeholder="Please describe your needs and any relevant medical conditions"
+            placeholder={t("form.fields.details.placeholder")}
           />
         </Form.Item>
 
-        <Form.Item label="Supporting Document (Optional)">
+        <Form.Item label={t("form.fields.document.label")}>
           <Upload
             maxCount={1}
             beforeUpload={() => false}
             onChange={handleImageChange}
           >
-            <Button icon={<UploadOutlined />}>Click to Upload</Button>
+            <Button icon={<UploadOutlined />}>
+              {t("form.fields.document.upload")}
+            </Button>
           </Upload>
         </Form.Item>
       </motion.div>,
@@ -619,194 +718,192 @@ export default function LandingForm() {
   };
 
   return (
-    <PageWrapper>
-      <MainContainer>
-        <BannerSection>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <MainTitle>
-              Professional
-              <motion.span
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
-                Healthcare
-              </motion.span>
-              At Your Doorstep
-            </MainTitle>
-          </motion.div>
+    <GlobalStyle dir={i18n.language === "ar" ? "rtl" : "ltr"}>
+      <PageWrapper>
+        <Dropdown menu={languageMenu} trigger={["click"]}>
+          <LanguageSwitcher type="text">
+            <GlobalOutlined />
+            {t(`language.${i18n.language}`)}
+          </LanguageSwitcher>
+        </Dropdown>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-          >
-            <Slogan>
-              Experience premium medical care in the comfort of your home with
-              our expert team of healthcare professionals.
-            </Slogan>
-          </motion.div>
-
-          <motion.div
-            variants={containerAnimation}
-            initial="hidden"
-            animate="show"
-            className="features-container"
-          >
-            <FeaturesList>
-              <MotionFeatureItem variants={itemAnimation}>
-                <div className="icon">👨‍⚕️</div>
-                <div className="content">
-                  <h3>Expert Medical Staff</h3>
-                  <p>
-                    Qualified and experienced healthcare professionals at your
-                    service.
-                  </p>
-                </div>
-              </MotionFeatureItem>
-              <MotionFeatureItem variants={itemAnimation}>
-                <div className="icon">🏥</div>
-                <div className="content">
-                  <h3>24/7 Care Available</h3>
-                  <p>Round-the-clock medical support when you need it most.</p>
-                </div>
-              </MotionFeatureItem>
-              <MotionFeatureItem variants={itemAnimation}>
-                <div className="icon">⚡</div>
-                <div className="content">
-                  <h3>Quick Response</h3>
-                  <p>Fast and efficient service delivery to your location.</p>
-                </div>
-              </MotionFeatureItem>
-              <MotionFeatureItem variants={itemAnimation}>
-                <div className="icon">💯</div>
-                <div className="content">
-                  <h3>Quality Assured</h3>
-                  <p>
-                    Highest standards of medical care and patient satisfaction.
-                  </p>
-                </div>
-              </MotionFeatureItem>
-            </FeaturesList>
-          </motion.div>
-        </BannerSection>
-
-        <FormSection>
-          <MotionCard
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+        <MainContainer>
+          <BannerSection>
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              style={{ textAlign: "center", marginBottom: "32px" }}
+              transition={{ duration: 0.5 }}
             >
-              <Title
-                level={2}
-                style={{ color: "#1a3d7c", marginBottom: "8px" }}
-              >
-                Request Medical Care
-              </Title>
-              <Text style={{ fontSize: "16px", color: "#666" }}>
-                Fill out the form below and our healthcare professionals will
-                contact you shortly
-              </Text>
+              <MainTitle>
+                {t("title.part1")}
+                <motion.span
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                >
+                  {t("title.part2")}
+                </motion.span>
+                {t("title.part3")}
+              </MainTitle>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
             >
-              <StyledSteps
-                current={currentStep}
-                items={steps}
-                labelPlacement="vertical"
-              />
-
-              <Form<LandingFormValues>
-                form={form}
-                layout="vertical"
-                onFinish={handleSubmit}
-                autoComplete="off"
-              >
-                <div>{renderFormStep()}</div>
-
-                <Form.Item>
-                  <Space
-                    style={{ width: "100%", justifyContent: "space-between" }}
-                  >
-                    {currentStep > 0 && (
-                      <Button onClick={prev}>Previous</Button>
-                    )}
-                    {currentStep < steps.length - 1 && (
-                      <Button type="primary" onClick={next}>
-                        Next
-                      </Button>
-                    )}
-                    {currentStep === steps.length - 1 && (
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        loading={loading}
-                      >
-                        Submit Request
-                      </Button>
-                    )}
-                  </Space>
-                </Form.Item>
-              </Form>
+              <Slogan>{t("slogan")}</Slogan>
             </motion.div>
-          </MotionCard>
-        </FormSection>
-      </MainContainer>
 
-      <SuccessModal
-        open={showSuccessModal}
-        footer={null}
-        closable={false}
-        width={560}
-        centered
-      >
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", duration: 0.5 }}
+            <motion.div
+              variants={containerAnimation}
+              initial="hidden"
+              animate="show"
+              className="features-container"
+            >
+              <FeaturesList>
+                <MotionFeatureItem variants={itemAnimation}>
+                  <div className="icon">👨‍⚕️</div>
+                  <div className="content">
+                    <h3>{t("features.expertStaff.title")}</h3>
+                    <p>{t("features.expertStaff.description")}</p>
+                  </div>
+                </MotionFeatureItem>
+                <MotionFeatureItem variants={itemAnimation}>
+                  <div className="icon">🏥</div>
+                  <div className="content">
+                    <h3>{t("features.247Care.title")}</h3>
+                    <p>{t("features.247Care.description")}</p>
+                  </div>
+                </MotionFeatureItem>
+                <MotionFeatureItem variants={itemAnimation}>
+                  <div className="icon">⚡</div>
+                  <div className="content">
+                    <h3>{t("features.quickResponse.title")}</h3>
+                    <p>{t("features.quickResponse.description")}</p>
+                  </div>
+                </MotionFeatureItem>
+                <MotionFeatureItem variants={itemAnimation}>
+                  <div className="icon">💯</div>
+                  <div className="content">
+                    <h3>{t("features.qualityAssured.title")}</h3>
+                    <p>{t("features.qualityAssured.description")}</p>
+                  </div>
+                </MotionFeatureItem>
+              </FeaturesList>
+            </motion.div>
+          </BannerSection>
+
+          <FormSection>
+            <MotionCard>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                style={{ textAlign: "center", marginBottom: "32px" }}
+              >
+                <Title
+                  level={2}
+                  style={{ color: "#1a3d7c", marginBottom: "8px" }}
+                >
+                  {t("form.title")}
+                </Title>
+                <Text style={{ fontSize: "16px", color: "#666" }}>
+                  {t("form.subtitle")}
+                </Text>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              >
+                <StyledSteps
+                  current={currentStep}
+                  items={steps}
+                  labelPlacement="vertical"
+                />
+
+                <Form<LandingFormValues>
+                  form={form}
+                  layout="vertical"
+                  onFinish={handleSubmit}
+                  autoComplete="off"
+                >
+                  <div>{renderFormStep()}</div>
+
+                  <Form.Item>
+                    <Space
+                      style={{ width: "100%", justifyContent: "space-between" }}
+                    >
+                      {currentStep > 0 && (
+                        <Button onClick={prev}>
+                          {t("form.buttons.previous")}
+                        </Button>
+                      )}
+                      {currentStep < steps.length - 1 && (
+                        <Button type="primary" onClick={next}>
+                          {t("form.buttons.next")}
+                        </Button>
+                      )}
+                      {currentStep === steps.length - 1 && (
+                        <Button
+                          type="primary"
+                          htmlType="submit"
+                          loading={loading}
+                        >
+                          {t("form.buttons.submit")}
+                        </Button>
+                      )}
+                    </Space>
+                  </Form.Item>
+                </Form>
+              </motion.div>
+            </MotionCard>
+          </FormSection>
+        </MainContainer>
+
+        <SuccessModal
+          open={showSuccessModal}
+          footer={null}
+          closable={false}
+          width={560}
+          centered
         >
-          <Result
-            icon={
-              <CheckCircleFilled style={{ color: "#52c41a", fontSize: 84 }} />
-            }
-            title="Request Submitted Successfully!"
-            subTitle="One of our professional nurses will contact you soon to discuss your request and provide personalized care options."
-            extra={[
-              <Button
-                key="check"
-                type="primary"
-                size="large"
-                onClick={() => navigate(`/request/${requestId}`)}
-                style={{ marginBottom: 10, width: "100%" }}
-              >
-                Track Request Status
-              </Button>,
-              <Button
-                key="back"
-                size="large"
-                onClick={handleModalClose}
-                style={{ width: "100%" }}
-              >
-                Return to Home
-              </Button>,
-            ]}
-          />
-        </motion.div>
-      </SuccessModal>
-    </PageWrapper>
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", duration: 0.5 }}
+          >
+            <Result
+              icon={
+                <CheckCircleFilled style={{ color: "#52c41a", fontSize: 84 }} />
+              }
+              title={t("success.title")}
+              subTitle={t("success.subtitle")}
+              extra={[
+                <Button
+                  key="check"
+                  type="primary"
+                  size="large"
+                  onClick={() => navigate(`/request/${requestId}`)}
+                  style={{ marginBottom: 10, width: "100%" }}
+                >
+                  {t("success.buttons.track")}
+                </Button>,
+                <Button
+                  key="back"
+                  size="large"
+                  onClick={handleModalClose}
+                  style={{ width: "100%" }}
+                >
+                  {t("success.buttons.home")}
+                </Button>,
+              ]}
+            />
+          </motion.div>
+        </SuccessModal>
+      </PageWrapper>
+    </GlobalStyle>
   );
 }

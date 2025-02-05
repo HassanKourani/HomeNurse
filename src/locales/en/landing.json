@@ -1,0 +1,92 @@
+{
+  "title": {
+    "part1": "Professional",
+    "part2": "Healthcare",
+    "part3": "At Your Doorstep"
+  },
+  "slogan": "Experience premium medical care in the comfort of your home with our expert team of healthcare professionals.",
+  "features": {
+    "expertStaff": {
+      "title": "Expert Medical Staff",
+      "description": "Qualified and experienced healthcare professionals at your service."
+    },
+    "247Care": {
+      "title": "24/7 Care Available",
+      "description": "Round-the-clock medical support when you need it most."
+    },
+    "quickResponse": {
+      "title": "Quick Response",
+      "description": "Fast and efficient service delivery to your location."
+    },
+    "qualityAssured": {
+      "title": "Quality Assured",
+      "description": "Highest standards of medical care and patient satisfaction."
+    }
+  },
+  "form": {
+    "title": "Request Medical Care",
+    "subtitle": "Fill out the form below and our healthcare professionals will contact you shortly",
+    "steps": {
+      "personalInfo": {
+        "title": "Personal Info",
+        "description": "Basic information"
+      },
+      "location": {
+        "title": "Location",
+        "description": "Your address"
+      },
+      "service": {
+        "title": "Service",
+        "description": "Service details"
+      }
+    },
+    "fields": {
+      "fullName": {
+        "label": "Full Name",
+        "placeholder": "Enter your full name"
+      },
+      "phoneNumber": {
+        "label": "Phone Number",
+        "placeholder": "Enter your phone number"
+      },
+      "area": {
+        "label": "Area",
+        "placeholder": "Select your area"
+      },
+      "location": {
+        "label": "Location Details",
+        "placeholder": "Please provide detailed address (building, street, nearby landmarks)"
+      },
+      "serviceType": {
+        "label": "Service Type",
+        "placeholder": "Select the type of service you need"
+      },
+      "details": {
+        "label": "Details",
+        "placeholder": "Please describe your needs and any relevant medical conditions"
+      },
+      "document": {
+        "label": "Supporting Document (Optional)",
+        "upload": "Click to Upload"
+      }
+    },
+    "buttons": {
+      "previous": "Previous",
+      "next": "Next",
+      "submit": "Submit Request"
+    }
+  },
+  "success": {
+    "title": "Request Submitted Successfully!",
+    "subtitle": "One of our professional nurses will contact you soon to discuss your request and provide personalized care options.",
+    "buttons": {
+      "track": "Track Request Status",
+      "home": "Return to Home"
+    }
+  },
+  "language": {
+    "en": "English",
+    "ar": "العربية",
+    "fr": "Français"
+  }
+}
