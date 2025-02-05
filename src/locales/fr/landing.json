@@ -47,7 +47,8 @@
       },
       "phoneNumber": {
         "label": "Numéro de Téléphone",
-        "placeholder": "Entrez votre numéro de téléphone"
+        "placeholder": "Entrez votre numéro de téléphone",
+        "validation": "Veuillez entrer un numéro de téléphone valide (seuls les chiffres, espaces et tirets sont autorisés)"
       },
       "area": {
         "label": "Zone",

@@ -648,8 +648,8 @@ export default function LandingForm() {
               message: t("form.fields.phoneNumber.placeholder"),
             },
             {
-              pattern: /^\+?[1-9]\d{1,14}$/,
-              message: "Please enter a valid phone number!",
+              pattern: /^[+]?[\d\s-]+$/,
+              message: t("form.fields.phoneNumber.validation"),
             },
           ]}
         >

@@ -47,7 +47,8 @@
       },
       "phoneNumber": {
         "label": "Phone Number",
-        "placeholder": "Enter your phone number"
+        "placeholder": "Enter your phone number",
+        "validation": "Please enter a valid phone number (only numbers, spaces, and hyphens allowed)"
       },
       "area": {
         "label": "Area",
