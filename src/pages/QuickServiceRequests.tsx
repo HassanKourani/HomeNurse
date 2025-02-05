@@ -299,7 +299,6 @@ export default function QuickServiceRequests() {
             patient: item.patient,
           })) || [];
 
-        console.log("Transformed data:", transformedData);
         setRequests(transformedData);
       } catch (error) {
         console.error("Error fetching requests:", error);

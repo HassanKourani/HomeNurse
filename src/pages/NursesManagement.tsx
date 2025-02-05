@@ -228,11 +228,7 @@ export default function NursesManagement() {
   useEffect(() => {
     // Check if user is superAdmin
     const checkAccess = async () => {
-      console.log("Checking access for nurses management...");
-      console.log("Current user:", user);
-
       if (!user) {
-        console.log("No user found, redirecting");
         navigate("/");
         return;
       }
@@ -244,19 +240,13 @@ export default function NursesManagement() {
           .eq("id", user.id)
           .single();
 
-        console.log("User profile:", profile);
-        console.log("Profile error:", error);
-
         if (error) throw error;
 
-        console.log("User role:", profile?.role);
         if (profile?.role !== "superAdmin") {
-          console.log("Not a super admin, redirecting");
           message.error("You don't have permission to access this page");
           navigate("/");
           return;
         }
-        console.log("Access granted - is super admin");
       } catch (error) {
         console.error("Error checking access:", error);
         message.error("Error checking permissions");

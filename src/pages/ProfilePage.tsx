@@ -53,7 +53,6 @@ const QUICK_SERVICE_TYPES = [
 
 // Service type categories for classification
 const isQuickService = (type: string): boolean => {
-  console.log("Checking if quick service:", type);
   // List of known quick service types
   const quickServices = [
     "blood_test",
@@ -64,7 +63,6 @@ const isQuickService = (type: string): boolean => {
     "other",
   ];
   const isQuick = quickServices.includes(type);
-  console.log("Is it in quick services list?", isQuick);
   return isQuick;
 };
 
@@ -382,7 +380,6 @@ export default function ProfilePage() {
           statistics.totalEarnings += earnings;
         });
 
-      console.log("Final unpaid statistics:", statistics);
       setStats(statistics);
     } catch (error) {
       console.error("Error fetching profile data:", error);
@@ -395,12 +392,7 @@ export default function ProfilePage() {
   useEffect(() => {
     // Check authorization
     const checkAuthorization = async () => {
-      console.log("Checking authorization...");
-      console.log("Current user:", user);
-      console.log("Nurse ID from params:", nurseId);
-
       if (!user) {
-        console.log("No user found, not authorized");
         setAuthorized(false);
         setLoading(false);
         return;
@@ -414,9 +406,6 @@ export default function ProfilePage() {
           .eq("id", user.id)
           .single();
 
-        console.log("Current user profile:", currentUserProfile);
-        console.log("Profile error:", profileError);
-
         if (profileError) throw profileError;
 
         // User is authorized if they are superAdmin or if they're viewing their own profile
@@ -424,15 +413,9 @@ export default function ProfilePage() {
         setIsSuperAdmin(isSuperAdmin);
         const isOwnProfile = user.id === nurseId;
 
-        console.log("Is super admin?", isSuperAdmin);
-        console.log("Is own profile?", isOwnProfile);
-        console.log("User role:", currentUserProfile?.role);
-
         if (isSuperAdmin || isOwnProfile) {
-          console.log("User is authorized");
           setAuthorized(true);
         } else {
-          console.log("User is not authorized");
           setAuthorized(false);
           message.error("You are not authorized to view this profile");
         }
@@ -452,16 +435,7 @@ export default function ProfilePage() {
     }
   }, [nurseId, authorized]);
 
-  // Add debug output for quick service stats
-  useEffect(() => {
-    const quickServiceStats = Object.entries(stats.serviceTypeStats).filter(
-      ([type]) => QUICK_SERVICE_TYPES.includes(type)
-    );
-    console.log("Quick service stats:", quickServiceStats);
-  }, [stats]);
-
   const handlePayment = () => {
-    console.log("Payment button clicked");
     setIsModalVisible(true);
   };
 
@@ -578,7 +552,6 @@ export default function ProfilePage() {
 
   // Only redirect if we're sure the user is not authorized
   if (authorized === false) {
-    console.log("Not authorized, redirecting to home");
     return <Navigate to="/" replace />;
   }
 

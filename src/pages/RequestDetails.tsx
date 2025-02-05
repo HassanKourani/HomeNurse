@@ -811,13 +811,16 @@ export default function RequestDetails() {
   const canEditPrice =
     userRole === "superAdmin" ||
     (userRole !== "patient" &&
-      request?.assigned_nurses.some((nurse) => nurse.id === user?.id));
+      request?.assigned_nurses.some(
+        (nurse) => nurse.id === user?.id && isQuickService(request.service_type)
+      ));
 
   const canApproveRequest =
     userRole &&
     userRole !== "patient" &&
     !request?.assigned_nurses.length &&
-    request?.status === "pending";
+    request?.status === "pending" &&
+    (isQuickService(request.service_type) || userRole === "superAdmin");
 
   const canCancelRequest =
     request?.status === "accepted" && userRole === "superAdmin";
@@ -1211,7 +1214,12 @@ export default function RequestDetails() {
                   style={{ display: "flex", gap: "12px", alignItems: "center" }}
                 >
                   <Text>
-                    {request.price ? `$${request.price.toFixed(2)}` : "Not set"}
+                    {request.price &&
+                    (isQuickService(request.service_type) ||
+                      (!isQuickService(request.service_type) &&
+                        userRole === "superAdmin"))
+                      ? `$${request.price.toFixed(2)}`
+                      : "Contact for price"}
                   </Text>
                   {canEditPrice && (
                     <Button
