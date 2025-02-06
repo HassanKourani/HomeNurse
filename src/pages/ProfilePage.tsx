@@ -644,7 +644,7 @@ export default function ProfilePage() {
               <PhoneOutlined /> {profile?.phone_number}
             </span>
             <span className="detail-item">
-              <MailOutlined /> {user?.email}
+              <MailOutlined /> {profile?.email}
             </span>
             <span className="detail-item">
               <CalendarOutlined /> Joined{" "}

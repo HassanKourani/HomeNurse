@@ -17,6 +17,7 @@ type NurseProfile = {
   role: "registered" | "licensed" | "practitioner";
   created_at: string;
   is_approved: boolean;
+  is_blocked: boolean;
 };
 
 const PageContainer = styled(motion.div)`
@@ -301,6 +302,29 @@ export default function NursesManagement() {
     }
   };
 
+  const handleBlockToggle = async (nurse: NurseProfile) => {
+    try {
+      const { data, error } = await supabase.rpc("toggle_nurse_block", {
+        nurse_id_param: nurse.id,
+        should_block: !nurse.is_blocked,
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.message);
+      }
+
+      message.success(data.message);
+      fetchNurses(); // Refresh the nurses list
+    } catch (error) {
+      console.error("Error toggling nurse block status:", error);
+      message.error(
+        error instanceof Error ? error.message : "Failed to update block status"
+      );
+    }
+  };
+
   const columns = [
     {
       title: "Name",
@@ -331,18 +355,25 @@ export default function NursesManagement() {
     {
       title: "Status",
       key: "status",
-      render: (_: undefined, record: NurseProfile) => (
-        <Tag color={record.is_approved ? "success" : "warning"}>
-          {record.is_approved ? "Approved" : "Pending Approval"}
-        </Tag>
+      render: (_: unknown, record: NurseProfile) => (
+        <Space>
+          <Tag color={record.is_approved ? "success" : "warning"}>
+            {record.is_approved ? "Approved" : "Pending"}
+          </Tag>
+          {record.is_blocked && <Tag color="error">BLOCKED</Tag>}
+        </Space>
       ),
     },
     {
       title: "Actions",
       key: "actions",
-      render: (_: undefined, record: NurseProfile) => (
+      render: (_: unknown, record: NurseProfile) => (
         <Space size="middle">
-          <Button type="link" onClick={() => navigate(`/profile/${record.id}`)}>
+          <Button
+            type="link"
+            icon={<EyeOutlined />}
+            onClick={() => navigate(`/profile/${record.id}`)}
+          >
             View Profile
           </Button>
           {!record.is_approved ? (
@@ -363,6 +394,14 @@ export default function NursesManagement() {
               Revoke Approval
             </Button>
           )}
+          <Button
+            type={record.is_blocked ? "default" : "text"}
+            danger={!record.is_blocked}
+            onClick={() => handleBlockToggle(record)}
+            size="small"
+          >
+            {record.is_blocked ? "Unblock" : "Block"}
+          </Button>
         </Space>
       ),
     },
@@ -385,9 +424,12 @@ export default function NursesManagement() {
         </div>
         <div className="card-item">
           <span className="label">Status</span>
-          <Tag color={nurse.is_approved ? "success" : "warning"}>
-            {nurse.is_approved ? "Approved" : "Pending Approval"}
-          </Tag>
+          <Space>
+            <Tag color={nurse.is_approved ? "success" : "warning"}>
+              {nurse.is_approved ? "Approved" : "Pending"}
+            </Tag>
+            {nurse.is_blocked && <Tag color="error">BLOCKED</Tag>}
+          </Space>
         </div>
       </div>
       <div className="card-actions">
@@ -416,6 +458,14 @@ export default function NursesManagement() {
             Revoke
           </Button>
         )}
+        <Button
+          type={nurse.is_blocked ? "default" : "text"}
+          danger={!nurse.is_blocked}
+          onClick={() => handleBlockToggle(nurse)}
+          size="small"
+        >
+          {nurse.is_blocked ? "Unblock" : "Block"}
+        </Button>
       </div>
     </StyledCard>
   );

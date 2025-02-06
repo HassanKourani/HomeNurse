@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
-      .select("is_approved")
+      .select("is_blocked, is_approved")
       .eq("email", email)
       .single();
 
@@ -115,6 +115,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(
         "Your account is pending approval. Please wait for admin approval before signing in."
       );
+    }
+    console.log(profileData);
+    if (profileData.is_blocked) {
+      notification.error({
+        message: "Error",
+        description: "Your account has been blocked. Please contact support.",
+      });
+      throw new Error("Your account has been blocked. Please contact support.");
     }
 
     const { error: authError } = await supabase.auth.signInWithPassword({
