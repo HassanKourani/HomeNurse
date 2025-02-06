@@ -36,9 +36,13 @@ const { TabPane } = Tabs;
 
 // Constants for service rates
 const SERVICE_RATES = {
-  normal_private: 3.75, // per hour
-  psychiatric: 4.0, // per hour
-  quick_service: 3.0, // per service
+  normal_private: 3.75, // per hour - what we owe the nurse
+  psychiatric: 4.0, // per hour - what we owe the nurse
+};
+
+// Commission rates for quick services (what nurse owes the company)
+const COMMISSION_RATES = {
+  quick_service: 3.0, // per service - commission owed by nurse to company
 };
 
 // Quick service types list - exact matches from database
@@ -363,16 +367,16 @@ export default function ProfilePage() {
           // Calculate earnings based on service type
           let earnings = 0;
           if (isQuickService(serviceType)) {
-            // Quick services are charged per service
-            earnings = SERVICE_RATES.quick_service;
+            // For quick services, the nurse owes us commission
+            earnings = -COMMISSION_RATES.quick_service; // Negative because nurse owes us
           } else if (serviceType.includes("psychiatric")) {
-            // Psychiatric services are charged per hour
-            earnings = log.hours * SERVICE_RATES.psychiatric;
+            // For psychiatric services, we owe the nurse per hour
+            earnings = -(log.hours * SERVICE_RATES.psychiatric); // Negative because we owe nurse
             statistics.serviceTypeStats[serviceType].hours += log.hours;
             statistics.totalHours += log.hours;
           } else if (serviceType.includes("private")) {
-            // Normal private services are charged per hour
-            earnings = log.hours * SERVICE_RATES.normal_private;
+            // For normal private services, we owe the nurse per hour
+            earnings = -(log.hours * SERVICE_RATES.normal_private); // Negative because we owe nurse
             statistics.serviceTypeStats[serviceType].hours += log.hours;
             statistics.totalHours += log.hours;
           }
@@ -656,7 +660,7 @@ export default function ProfilePage() {
       </ProfileHeader>
 
       <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} md={8}>
           <StatisticCard>
             <Statistic
               title="Total Working Hours"
@@ -666,7 +670,7 @@ export default function ProfilePage() {
             />
           </StatisticCard>
         </Col>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} md={8}>
           <StatisticCard>
             <Statistic
               title="Total Services"
@@ -675,21 +679,12 @@ export default function ProfilePage() {
             />
           </StatisticCard>
         </Col>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} md={8}>
           <StatisticCard>
             <Statistic
               title="Average Hours per Service"
               value={(stats.totalHours / (workingHours.length || 1)).toFixed(1)}
               suffix="hrs"
-            />
-          </StatisticCard>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <StatisticCard>
-            <Statistic
-              title="Total Earnings"
-              value={stats.totalEarnings.toFixed(2)}
-              prefix={<DollarOutlined />}
             />
           </StatisticCard>
         </Col>
@@ -699,51 +694,85 @@ export default function ProfilePage() {
         <Col xs={24} md={8}>
           <StatisticCard>
             <Statistic
-              title="Normal Private Care Earnings"
-              value={Object.entries(stats.serviceTypeStats)
-                .filter(
-                  ([type]) =>
-                    type.includes("private") && !type.includes("psychiatric")
-                )
-                .reduce((sum, [, data]) => sum + data.earnings, 0)
-                .toFixed(2)}
+              title="Amount We Owe for Private Care"
+              value={Math.abs(
+                Object.entries(stats.serviceTypeStats)
+                  .filter(
+                    ([type]) =>
+                      type.includes("private") && !type.includes("psychiatric")
+                  )
+                  .reduce((sum, [, data]) => sum + data.earnings, 0)
+              ).toFixed(2)}
+              prefix={<DollarOutlined />}
+              valueStyle={{ color: "#f5222d" }}
+            />
+            <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
+              Rate: ${SERVICE_RATES.normal_private}/hour (Owed to Nurse)
+            </div>
+          </StatisticCard>
+        </Col>
+        <Col xs={24} md={8}>
+          <StatisticCard>
+            <Statistic
+              title="Amount We Owe for Psychiatric Care"
+              value={Math.abs(
+                Object.entries(stats.serviceTypeStats)
+                  .filter(([type]) => type.includes("psychiatric"))
+                  .reduce((sum, [, data]) => sum + data.earnings, 0)
+              ).toFixed(2)}
+              prefix={<DollarOutlined />}
+              valueStyle={{ color: "#f5222d" }}
+            />
+            <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
+              Rate: ${SERVICE_RATES.psychiatric}/hour (Owed to Nurse)
+            </div>
+          </StatisticCard>
+        </Col>
+        <Col xs={24} md={8}>
+          <StatisticCard>
+            <Statistic
+              title="Commission Owed by Nurse"
+              value={Math.abs(
+                Object.entries(stats.serviceTypeStats)
+                  .filter(([type]) => isQuickService(type))
+                  .reduce((sum, [, data]) => sum + data.earnings, 0)
+              ).toFixed(2)}
               prefix={<DollarOutlined />}
               valueStyle={{ color: "#52c41a" }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Rate: ${SERVICE_RATES.normal_private}/hour
+              Rate: ${COMMISSION_RATES.quick_service} per service (Owed to
+              Company)
             </div>
           </StatisticCard>
         </Col>
-        <Col xs={24} md={8}>
+      </Row>
+
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        <Col xs={24}>
           <StatisticCard>
             <Statistic
-              title="Psychiatric Care Earnings"
-              value={Object.entries(stats.serviceTypeStats)
-                .filter(([type]) => type.includes("psychiatric"))
-                .reduce((sum, [, data]) => sum + data.earnings, 0)
-                .toFixed(2)}
+              title="Total Balance"
+              value={(
+                Math.abs(
+                  Object.entries(stats.serviceTypeStats)
+                    .filter(([type]) => !isQuickService(type))
+                    .reduce((sum, [, data]) => sum + data.earnings, 0)
+                ) -
+                Math.abs(
+                  Object.entries(stats.serviceTypeStats)
+                    .filter(([type]) => isQuickService(type))
+                    .reduce((sum, [, data]) => sum + data.earnings, 0)
+                )
+              ).toFixed(2)}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: "#722ed1" }}
+              valueStyle={{
+                color: "#f5222d",
+                fontSize: "24px",
+              }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Rate: ${SERVICE_RATES.psychiatric}/hour
-            </div>
-          </StatisticCard>
-        </Col>
-        <Col xs={24} md={8}>
-          <StatisticCard>
-            <Statistic
-              title="Quick Service Earnings"
-              value={Object.entries(stats.serviceTypeStats)
-                .filter(([type]) => isQuickService(type))
-                .reduce((sum, [, data]) => sum + data.earnings, 0)
-                .toFixed(2)}
-              prefix={<DollarOutlined />}
-              valueStyle={{ color: "#1890ff" }}
-            />
-            <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Rate: ${SERVICE_RATES.quick_service} per service
+              Final amount we owe the nurse (Private care - Commission)
             </div>
           </StatisticCard>
         </Col>

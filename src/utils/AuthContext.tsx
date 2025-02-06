@@ -116,7 +116,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         "Your account is pending approval. Please wait for admin approval before signing in."
       );
     }
-    console.log(profileData);
     if (profileData.is_blocked) {
       notification.error({
         message: "Error",
