@@ -5,12 +5,7 @@ import styled from "styled-components";
 import supabase from "../utils/supabase";
 import { useAuth } from "../utils/AuthContext";
 import { useNavigate } from "react-router-dom";
-import {
-  PlusOutlined,
-  HomeOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-} from "@ant-design/icons";
+import { PlusOutlined, HomeOutlined, EyeOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
@@ -21,6 +16,7 @@ type NurseProfile = {
   phone_number: string;
   role: "registered" | "licensed" | "practitioner";
   created_at: string;
+  is_approved: boolean;
 };
 
 const PageContainer = styled(motion.div)`
@@ -225,6 +221,26 @@ export default function NursesManagement() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const fetchNurses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("role", ["registered", "licensed", "practitioner"])
+        .not("id", "eq", user?.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      setNurses(data || []);
+    } catch (error) {
+      console.error("Error fetching nurses:", error);
+      message.error("Failed to fetch nurses");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Check if user is superAdmin
     const checkAccess = async () => {
@@ -247,6 +263,9 @@ export default function NursesManagement() {
           navigate("/");
           return;
         }
+
+        // Fetch nurses after confirming superAdmin access
+        await fetchNurses();
       } catch (error) {
         console.error("Error checking access:", error);
         message.error("Error checking permissions");
@@ -257,27 +276,30 @@ export default function NursesManagement() {
     checkAccess();
   }, [user, navigate]);
 
-  useEffect(() => {
-    const fetchNurses = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id, full_name, email, phone_number, role, created_at")
-          .in("role", ["registered", "licensed", "practitioner"])
-          .order("created_at", { ascending: false });
+  const handleApproval = async (nurseId: string, approve: boolean) => {
+    try {
+      const { data, error } = await supabase.rpc("approve_nurse", {
+        nurse_id_param: nurseId,
+        should_approve: approve,
+      });
 
-        if (error) throw error;
-        setNurses(data || []);
-      } catch (error) {
-        console.error("Error fetching nurses:", error);
-        message.error("Failed to fetch nurses data");
-      } finally {
-        setLoading(false);
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.message);
       }
-    };
 
-    fetchNurses();
-  }, []);
+      message.success(data.message);
+
+      // Refresh the nurses list
+      fetchNurses();
+    } catch (error) {
+      console.error("Error updating nurse status:", error);
+      message.error(
+        error instanceof Error ? error.message : "Failed to update nurse status"
+      );
+    }
+  };
 
   const columns = [
     {
@@ -307,6 +329,15 @@ export default function NursesManagement() {
       ),
     },
     {
+      title: "Status",
+      key: "status",
+      render: (_: undefined, record: NurseProfile) => (
+        <Tag color={record.is_approved ? "success" : "warning"}>
+          {record.is_approved ? "Approved" : "Pending Approval"}
+        </Tag>
+      ),
+    },
+    {
       title: "Actions",
       key: "actions",
       render: (_: undefined, record: NurseProfile) => (
@@ -314,13 +345,24 @@ export default function NursesManagement() {
           <Button type="link" onClick={() => navigate(`/profile/${record.id}`)}>
             View Profile
           </Button>
-          <Button
-            type="link"
-            danger
-            onClick={() => console.log("Block:", record.id)}
-          >
-            Block
-          </Button>
+          {!record.is_approved ? (
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => handleApproval(record.id, true)}
+            >
+              Approve
+            </Button>
+          ) : (
+            <Button
+              type="primary"
+              danger
+              size="small"
+              onClick={() => handleApproval(record.id, false)}
+            >
+              Revoke Approval
+            </Button>
+          )}
         </Space>
       ),
     },
@@ -341,6 +383,12 @@ export default function NursesManagement() {
           <span className="label">Phone</span>
           <span className="value">{nurse.phone_number}</span>
         </div>
+        <div className="card-item">
+          <span className="label">Status</span>
+          <Tag color={nurse.is_approved ? "success" : "warning"}>
+            {nurse.is_approved ? "Approved" : "Pending Approval"}
+          </Tag>
+        </div>
       </div>
       <div className="card-actions">
         <Button
@@ -350,14 +398,24 @@ export default function NursesManagement() {
         >
           View
         </Button>
-        <Button
-          type="text"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => console.log("Block:", nurse.id)}
-        >
-          Block
-        </Button>
+        {!nurse.is_approved ? (
+          <Button
+            type="primary"
+            size="small"
+            onClick={() => handleApproval(nurse.id, true)}
+          >
+            Approve
+          </Button>
+        ) : (
+          <Button
+            type="primary"
+            danger
+            size="small"
+            onClick={() => handleApproval(nurse.id, false)}
+          >
+            Revoke
+          </Button>
+        )}
       </div>
     </StyledCard>
   );

@@ -4,7 +4,6 @@ import styled from "styled-components";
 import AuthForm from "../components/Auth/AuthForm";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../utils/AuthContext";
-import supabase from "../utils/supabase";
 import { useNotification } from "../utils/NotificationProvider";
 
 const { Title, Text } = Typography;
@@ -95,26 +94,10 @@ export default function SignupPage() {
 
   useEffect(() => {
     const checkAccess = async () => {
-      if (!user) {
+      if (user && user?.role !== "superAdmin") {
         notification.error({
           message: "Error",
-          description: "Please sign in first",
-          placement: "topRight",
-        });
-        navigate("/");
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.role !== "superAdmin") {
-        notification.error({
-          message: "Error",
-          description: "You don't have permission to access this page",
+          description: "You are already logged in",
           placement: "topRight",
         });
         navigate("/");
@@ -129,19 +112,15 @@ export default function SignupPage() {
       <MainContainer>
         <BannerSection>
           <MainTitle>
-            Add New
-            <span>Healthcare Professional</span>
+            Join Our
+            <span>Healthcare Network</span>
           </MainTitle>
           <Subtitle>
-            Create an account for a new nurse to join our network of healthcare
-            professionals.
+            Apply to become part of our network of healthcare professionals.
+            Once approved, you'll be able to provide care to patients in need.
           </Subtitle>
           <Text>
-            <StyledLink to="/nurses">View All Nurses</StyledLink>
-          </Text>
-          <br />
-          <Text>
-            <StyledLink to="/">Go to main page</StyledLink>
+            <StyledLink to="/">Back to main page</StyledLink>
           </Text>
         </BannerSection>
         <FormSection>

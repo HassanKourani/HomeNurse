@@ -26,7 +26,6 @@ import {
   TeamOutlined,
   UserAddOutlined,
   LoginOutlined,
-  MailOutlined,
   HomeOutlined,
 } from "@ant-design/icons";
 import { NotificationProvider } from "./utils/NotificationProvider";
@@ -586,6 +585,7 @@ function AuthenticatedApp() {
 
 function UnauthenticatedApp() {
   const [showSignIn, setShowSignIn] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <StyledLayout>
@@ -623,12 +623,10 @@ function UnauthenticatedApp() {
                 </Button>
                 <Button
                   type="primary"
-                  onClick={() =>
-                    (window.location.href = "mailto:support@medicalcare.com")
-                  }
-                  icon={<MailOutlined className="nav-icon" />}
+                  onClick={() => navigate("/signup")}
+                  icon={<UserAddOutlined className="nav-icon" />}
                 >
-                  <span className="btn-text">Contact Support</span>
+                  <span className="btn-text">Join Us</span>
                 </Button>
               </>
             ) : (

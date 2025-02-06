@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { notification } from "antd";
 import { User } from "@supabase/supabase-js";
 import supabase from "./supabase";
 
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: profileData.role,
           area: profileData.area,
           updated_at: new Date().toISOString(),
+          is_approved: false, // Set to false by default for new nurse signups
         },
       ]);
 
@@ -90,11 +92,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("is_approved")
+      .eq("email", email)
+      .single();
+
+    if (profileError) {
+      notification.error({
+        message: "Error",
+        description: "Check your email/password",
+      });
+      throw new Error("Failed to verify account status");
+    }
+
+    if (!profileData.is_approved) {
+      notification.error({
+        message: "Error",
+        description:
+          "Your account is pending approval. Please wait for admin approval before signing in.",
+      });
+      throw new Error(
+        "Your account is pending approval. Please wait for admin approval before signing in."
+      );
+    }
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    if (error) throw error;
+    if (authError) throw authError;
+
+    if (profileError) {
+      await signOut(); // Sign out if we can't verify approval status
+      message.error("Failed to verify account status");
+      throw new Error("Failed to verify account status");
+    }
+
+    if (!profileData.is_approved) {
+      await signOut(); // Sign out if not approved
+      throw new Error(
+        "Your account is pending approval. Please wait for admin approval before signing in."
+      );
+    }
   };
 
   const signOut = async () => {
