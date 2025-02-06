@@ -1546,6 +1546,30 @@ export default function RequestDetails() {
             </Descriptions.Item>
             {request.assigned_nurses && request.assigned_nurses.length > 0 && (
               <Descriptions.Item label="Assigned Nurses" span={2}>
+                {isQuickService(request.service_type) &&
+                  userRole !== "patient" &&
+                  (userRole === "superAdmin" ||
+                    request.assigned_nurses.some(
+                      (nurse) => nurse.id === user?.id
+                    )) && (
+                    <div
+                      style={{
+                        marginBottom: "16px",
+                        padding: "12px",
+                        background: "#fffbe6",
+                        border: "1px solid #ffe58f",
+                        borderRadius: "4px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <Text type="warning">
+                        Note: A commission fee of $4 will be deducted from the
+                        payment for this quick service request.
+                      </Text>
+                    </div>
+                  )}
                 {request.assigned_nurses.map((nurse) => (
                   <div
                     key={nurse.id}
