@@ -75,3 +75,42 @@ export const sendNotificationToNurses = async (emailData: EmailData) => {
     throw error;
   }
 };
+
+export const sendNurseAssignmentRequest = async (
+  nurseId: string,
+  requestId: string,
+  nurseName: string,
+  patientName: string,
+  serviceType: string
+) => {
+  try {
+    // Get super admin emails
+    const { data: superAdmins } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("role", "superAdmin");
+
+    if (!superAdmins || superAdmins.length === 0) return;
+
+    const uniqueEmails = [...new Set(superAdmins.map((admin) => admin.email))];
+
+    const templateParams = {
+      to_email: uniqueEmails.join(","),
+      nurse_name: nurseName,
+      patient_name: patientName,
+      service_type: serviceType,
+      request_id: requestId,
+    };
+
+    const response = await emailjs.send(
+      "service_r6n90nk",
+      "template_rfosoa3",
+      templateParams
+    );
+
+    return response;
+  } catch (error) {
+    console.error("Error sending nurse assignment request email:", error);
+    throw error;
+  }
+};

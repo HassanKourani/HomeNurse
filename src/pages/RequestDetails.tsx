@@ -35,6 +35,7 @@ import {
 import { useAuth } from "../utils/AuthContext";
 import dayjs from "dayjs";
 import { useNotification } from "../utils/NotificationProvider";
+import { sendNurseAssignmentRequest } from "../utils/emailUtils";
 
 const { Title, Text } = Typography;
 
@@ -425,6 +426,15 @@ export default function RequestDetails() {
   const [isDocumentModalVisible, setIsDocumentModalVisible] = useState(false);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [documentType, setDocumentType] = useState<string>("");
+  const [requestingAssignment, setRequestingAssignment] = useState(false);
+  const [hasRequestedAssignment, setHasRequestedAssignment] = useState(() => {
+    const requestedAssignments = localStorage.getItem("requestedAssignments");
+    if (requestedAssignments) {
+      const requests = JSON.parse(requestedAssignments);
+      return requests.includes(id);
+    }
+    return false;
+  });
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -881,6 +891,16 @@ export default function RequestDetails() {
   const canCompleteRequest =
     userRole === "superAdmin" && request?.status === "accepted";
 
+  const canRequestAssignment =
+    userRole &&
+    userRole !== "patient" &&
+    userRole !== "superAdmin" &&
+    request &&
+    !isQuickService(request.service_type) &&
+    request.status === "pending" &&
+    !request.assigned_nurses.some((nurse) => nurse.id === user?.id) &&
+    !hasRequestedAssignment;
+
   const filteredNurses = availableNurses.filter(
     (nurse) =>
       !request?.assigned_nurses.some((assigned) => assigned.id === nurse.id) &&
@@ -1135,6 +1155,57 @@ export default function RequestDetails() {
     }
   };
 
+  const handleRequestAssignment = async () => {
+    if (!user?.id || !request) return;
+
+    try {
+      setRequestingAssignment(true);
+
+      // Get nurse's full name
+      const { data: nurseData } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+
+      if (!nurseData) throw new Error("Could not find nurse data");
+
+      await sendNurseAssignmentRequest(
+        user.id,
+        request.id.toString(),
+        nurseData.full_name,
+        request.patient.full_name,
+        request.service_type
+      );
+
+      // Save to localStorage
+      const requestedAssignments = localStorage.getItem("requestedAssignments");
+      const requests = requestedAssignments
+        ? JSON.parse(requestedAssignments)
+        : [];
+      requests.push(id);
+      localStorage.setItem("requestedAssignments", JSON.stringify(requests));
+
+      // Update local state
+      setHasRequestedAssignment(true);
+
+      notificationApi.success({
+        message: "Success",
+        description: "Assignment request sent successfully",
+        placement: "topRight",
+      });
+    } catch (error) {
+      console.error("Error requesting assignment:", error);
+      notificationApi.error({
+        message: "Error",
+        description: "Failed to send assignment request",
+        placement: "topRight",
+      });
+    } finally {
+      setRequestingAssignment(false);
+    }
+  };
+
   if (loading) {
     return (
       <PageContainer>
@@ -1256,6 +1327,28 @@ export default function RequestDetails() {
                     Cancel Request
                   </Button>
                 )}
+                {canRequestAssignment ? (
+                  <Button
+                    type="primary"
+                    onClick={handleRequestAssignment}
+                    loading={requestingAssignment}
+                    icon={<UserAddOutlined />}
+                    style={{ marginLeft: 8 }}
+                  >
+                    Request Assignment
+                  </Button>
+                ) : userRole !== "patient" &&
+                  userRole !== "superAdmin" &&
+                  !isQuickService(request.service_type) &&
+                  hasRequestedAssignment ? (
+                  <Button
+                    disabled
+                    icon={<CheckOutlined />}
+                    style={{ marginLeft: 8 }}
+                  >
+                    Request Sent
+                  </Button>
+                ) : null}
               </motion.div>
             }
           >
@@ -1274,7 +1367,11 @@ export default function RequestDetails() {
               {request.patient.full_name}
             </Descriptions.Item>
             <Descriptions.Item label="Contact">
-              {request.patient.phone_number}
+              {userRole === "superAdmin" ||
+              isQuickService(request.service_type) ||
+              request.assigned_nurses.some((nurse) => nurse.id === user?.id)
+                ? request.patient.phone_number
+                : "Contact hidden - Only visible to assigned nurses"}
             </Descriptions.Item>
             <Descriptions.Item label="Location">
               {request.patient.area} - {request.patient.location}
