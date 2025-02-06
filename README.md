@@ -179,6 +179,41 @@ src/
 - Certifications
 - Performance metrics
 
+### 5. Payment Structure
+
+#### Private Care Services
+
+- Company pays nurses directly
+- Rates:
+  - Normal Private Care: $3.75/hour
+  - Psychiatric Care: $4.00/hour
+- Payment processed by SuperAdmin
+- Tracked through working hours log
+
+#### Quick Services
+
+- Patient pays nurse directly
+- Nurse pays commission to company
+- Commission rate: $3.00 per service
+- Quick services include:
+  - Blood tests
+  - IM injections
+  - IV services
+  - Hemo VS
+  - Patient care
+  - Other quick services
+
+#### Payment Processing
+
+- SuperAdmin can process payments:
+  - Bulk payment for all unpaid hours
+  - Individual payment for specific services
+- Payment tracking with paid/unpaid status
+- Automatic balance calculation:
+  - Shows amount owed to nurse (private care)
+  - Shows commission owed by nurse
+  - Calculates final balance (private care earnings - commission)
+
 ## Database Schema
 
 The application uses a PostgreSQL database hosted on Supabase with the following structure:

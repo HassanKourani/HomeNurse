@@ -317,7 +317,14 @@ const PriceEditSection = styled.div`
 `;
 
 const isQuickService = (serviceType: string) => {
-  const quickServices = ["blood_test", "im", "iv", "hemo_vs", "other"];
+  const quickServices = [
+    "blood_test",
+    "im",
+    "iv",
+    "hemo_vs",
+    "patient_care",
+    "other",
+  ];
   return quickServices.includes(serviceType);
 };
 
