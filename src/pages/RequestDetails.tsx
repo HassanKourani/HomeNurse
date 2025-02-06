@@ -1171,7 +1171,6 @@ export default function RequestDetails() {
       if (!nurseData) throw new Error("Could not find nurse data");
 
       await sendNurseAssignmentRequest(
-        user.id,
         request.id.toString(),
         nurseData.full_name,
         request.patient.full_name,

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { notification } from "antd";
+import { notification, message } from "antd";
 import { User } from "@supabase/supabase-js";
 import supabase from "./supabase";
 

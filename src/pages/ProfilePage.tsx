@@ -97,6 +97,7 @@ interface Profile {
   phone_number: string;
   role: string;
   created_at: string;
+  email: string;
 }
 
 // Add this interface for request data

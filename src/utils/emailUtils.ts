@@ -77,7 +77,6 @@ export const sendNotificationToNurses = async (emailData: EmailData) => {
 };
 
 export const sendNurseAssignmentRequest = async (
-  nurseId: string,
   requestId: string,
   nurseName: string,
   patientName: string,
