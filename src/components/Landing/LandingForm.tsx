@@ -12,11 +12,13 @@ import {
   Result,
   Typography,
   Dropdown,
+  List,
 } from "antd";
 import {
   UploadOutlined,
   CheckCircleFilled,
   GlobalOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
 import styled from "styled-components";
 import { motion } from "framer-motion";
@@ -386,6 +388,22 @@ const LanguageSwitcher = styled(Button)`
   }
 `;
 
+const HistoryButton = styled(Button)`
+  position: fixed;
+  top: 140px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1a3d7c;
+  color: white;
+
+  .anticon {
+    font-size: 16px;
+  }
+`;
+
 const GlobalStyle = styled.div`
   .ant-form {
     direction: ${(props) => props.dir};
@@ -442,6 +460,10 @@ export default function LandingForm() {
   const notification = useNotification();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [pastRequests, setPastRequests] = useState<
+    Array<{ id: string; timestamp: string }>
+  >([]);
 
   const steps = [
     {
@@ -479,6 +501,14 @@ export default function LandingForm() {
     }
   }, []);
 
+  useEffect(() => {
+    // Load past requests from localStorage
+    const savedRequests = localStorage.getItem("request-history");
+    if (savedRequests) {
+      setPastRequests(JSON.parse(savedRequests));
+    }
+  }, []);
+
   const languageMenu = {
     items: [
       {
@@ -500,8 +530,6 @@ export default function LandingForm() {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      console.log("handleSubmit - starting submission");
-      console.log("handleSubmit - imageFile:", imageFile);
 
       // Validate all fields first and get the validated values
       const formValues = await form.validateFields();
@@ -526,16 +554,13 @@ export default function LandingForm() {
         console.error("Profile Error:", profileError);
         throw new Error("Failed to create profile");
       }
-      console.log("handleSubmit - profile created:", profileData);
 
       // 2. Upload image if exists
       let imageId = null;
       if (imageFile) {
-        console.log("handleSubmit - starting image upload");
         const fileExt = imageFile.name.split(".").pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `request-images/${fileName}`;
-        console.log("handleSubmit - uploading to path:", filePath);
 
         const { error: uploadError, data } = await supabase.storage
           .from("request-images")
@@ -546,7 +571,6 @@ export default function LandingForm() {
           throw uploadError;
         }
         imageId = data.path;
-        console.log("handleSubmit - image uploaded successfully:", imageId);
       }
 
       // 3. Create request
@@ -591,6 +615,19 @@ export default function LandingForm() {
           placement: "topRight",
         });
       }
+
+      // After successful request creation, store in localStorage
+      const newRequest = {
+        id: requestData.id,
+        timestamp: new Date().toISOString(),
+      };
+
+      const existingRequests = JSON.parse(
+        localStorage.getItem("request-history") || "[]"
+      );
+      const updatedRequests = [newRequest, ...existingRequests];
+      localStorage.setItem("request-history", JSON.stringify(updatedRequests));
+      setPastRequests(updatedRequests);
 
       setRequestId(requestData.id);
       setShowSuccessModal(true);
@@ -773,7 +810,7 @@ export default function LandingForm() {
           name="details"
           rules={[
             {
-              required: true,
+              required: false,
               message: t("form.fields.details.placeholder"),
             },
           ]}
@@ -822,6 +859,13 @@ export default function LandingForm() {
             {t(`language.${i18n.language}`)}
           </LanguageSwitcher>
         </Dropdown>
+
+        {pastRequests.length > 0 && (
+          <HistoryButton type="text" onClick={() => setShowHistoryModal(true)}>
+            <HistoryOutlined />
+            {t("history.button", "Request History")}
+          </HistoryButton>
+        )}
 
         <MainContainer>
           <BannerSection>
@@ -958,6 +1002,41 @@ export default function LandingForm() {
             </MotionCard>
           </FormSection>
         </MainContainer>
+
+        <Modal
+          title={t("history.modalTitle", "Request History")}
+          open={showHistoryModal}
+          onCancel={() => setShowHistoryModal(false)}
+          footer={null}
+          width={600}
+        >
+          <List
+            dataSource={pastRequests}
+            renderItem={(item) => (
+              <List.Item
+                actions={[
+                  <Button
+                    type="link"
+                    onClick={() => {
+                      setShowHistoryModal(false);
+                      navigate(`/request/${item.id}`);
+                    }}
+                  >
+                    {t("history.viewDetails", "View Details")}
+                  </Button>,
+                ]}
+              >
+                <List.Item.Meta
+                  title={`${t("history.requestId", "Request")} #${item.id}`}
+                  description={new Date(item.timestamp).toLocaleString()}
+                />
+              </List.Item>
+            )}
+            locale={{
+              emptyText: t("history.noRequests", "No past requests found"),
+            }}
+          />
+        </Modal>
 
         <SuccessModal
           open={showSuccessModal}
