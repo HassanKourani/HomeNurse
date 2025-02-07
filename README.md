@@ -183,10 +183,16 @@ src/
 
 #### Private Care Services
 
-- Company pays nurses directly
-- Rates:
+- Nurses have individual hourly rates that can be managed by SuperAdmin
+- Default rates:
   - Normal Private Care: $3.75/hour
   - Psychiatric Care: $4.00/hour
+- Rates can be customized per nurse based on:
+  - Experience
+  - Qualifications
+  - Performance
+  - Market conditions
+- Rate changes are tracked with timestamps
 - Payment processed by SuperAdmin
 - Tracked through working hours log
 
@@ -205,14 +211,67 @@ src/
 
 #### Payment Processing
 
-- SuperAdmin can process payments:
-  - Bulk payment for all unpaid hours
-  - Individual payment for specific services
+- SuperAdmin can:
+  - Process payments:
+    - Bulk payment for all unpaid hours
+    - Individual payment for specific services
+  - Manage nurse hourly rates:
+    - View current rates
+    - Update normal care rate
+    - Update psychiatric care rate
+    - Track rate change history
 - Payment tracking with paid/unpaid status
 - Automatic balance calculation:
-  - Shows amount owed to nurse (private care)
+  - Shows amount owed to nurse (based on their individual rates)
   - Shows commission owed by nurse
   - Calculates final balance (private care earnings - commission)
+
+### Database Schema
+
+#### profiles table additions:
+
+```sql
+ALTER TABLE profiles
+ADD COLUMN normal_care_hourly_rate NUMERIC DEFAULT 3.75,
+ADD COLUMN psychiatric_care_hourly_rate NUMERIC DEFAULT 4.00,
+ADD COLUMN rates_updated_at TIMESTAMPTZ DEFAULT now();
+```
+
+#### Rate Management Function:
+
+```sql
+-- Function to update nurse rates (SuperAdmin only)
+CREATE OR REPLACE FUNCTION update_nurse_rates(
+    nurse_id_param UUID,
+    normal_rate_param NUMERIC,
+    psychiatric_rate_param NUMERIC
+) RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+-- Function implementation details in migration file
+$$;
+```
+
+#### Triggers:
+
+```sql
+-- Trigger to track rate changes
+CREATE TRIGGER update_rates_timestamp
+    BEFORE UPDATE ON profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION update_rates_updated_at();
+```
+
+#### Security:
+
+```sql
+-- RLS policy for rate management
+CREATE POLICY "Allow superAdmin to update rates"
+    ON profiles
+    FOR UPDATE
+    USING (auth.uid() IN (SELECT id FROM profiles WHERE role = 'superAdmin'));
+```
 
 ## Database Schema
 
