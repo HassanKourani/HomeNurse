@@ -13,6 +13,7 @@ import {
   Typography,
   Dropdown,
   List,
+  Tag,
 } from "antd";
 import {
   UploadOutlined,
@@ -55,7 +56,7 @@ type LandingFormValues = {
   full_name: string;
   phone_number: string;
   email: string;
-  service_type: ServiceType;
+  service_type: ServiceType[];
   area: Area;
   location: string;
   details: string;
@@ -429,7 +430,7 @@ const FixedWidthSelect = styled(Select)`
 
     .ant-select-selector {
       width: 100% !important;
-      height: 32px !important;
+      height: max-content !important;
       padding: 0 11px !important;
     }
 
@@ -573,7 +574,7 @@ export default function LandingForm() {
         imageId = data.path;
       }
 
-      // 3. Create request
+      // 3. Create request with array of service types
       const { data: requestData, error: requestError } = await supabase
         .from("requests")
         .insert([
@@ -594,7 +595,7 @@ export default function LandingForm() {
         throw new Error("Failed to create request");
       }
 
-      // 4. Send email notifications
+      // 4. Send email notifications with array of service types
       try {
         await sendNotificationToNurses({
           patientName: formValues.full_name,
@@ -608,7 +609,6 @@ export default function LandingForm() {
         });
       } catch (emailError) {
         console.error("Error sending email notifications:", emailError);
-        // Don't throw the error here, as we still want to show success even if emails fail
         notification.warning({
           message: "Warning",
           description: "Request created but failed to send email notifications",
@@ -789,11 +789,28 @@ export default function LandingForm() {
             {
               required: true,
               message: t("form.fields.serviceType.placeholder"),
+              type: "array",
             },
           ]}
         >
           <FixedWidthSelect
+            mode="multiple"
             placeholder={t("form.fields.serviceType.placeholder")}
+            allowClear
+            showArrow
+            tagRender={(props) => {
+              const { value, closable, onClose } = props;
+              return (
+                <Tag
+                  color="blue"
+                  closable={closable}
+                  onClose={onClose}
+                  style={{ marginRight: 3 }}
+                >
+                  {t(`form.fields.serviceTypes.${value}`)}
+                </Tag>
+              );
+            }}
           >
             {(
               Object.entries(SERVICE_TYPE_LABELS) as [ServiceType, string][]

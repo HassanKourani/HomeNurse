@@ -75,7 +75,18 @@ interface WorkingHoursLog {
   created_at: string;
   is_paid: boolean;
   request: {
-    service_type: string;
+    service_type: Array<
+      | "blood_test"
+      | "im"
+      | "iv"
+      | "patient_care"
+      | "hemo_vs"
+      | "other"
+      | "full_time_private_normal"
+      | "part_time_private_normal"
+      | "full_time_private_psychiatric"
+      | "part_time_private_psychiatric"
+    >;
   };
 }
 
@@ -106,7 +117,18 @@ interface Profile {
 // Add this interface for request data
 interface NurseRequest {
   id: number;
-  service_type: string;
+  service_type: Array<
+    | "blood_test"
+    | "im"
+    | "iv"
+    | "patient_care"
+    | "hemo_vs"
+    | "other"
+    | "full_time_private_normal"
+    | "part_time_private_normal"
+    | "full_time_private_psychiatric"
+    | "part_time_private_psychiatric"
+  >;
   details: string;
   status: string;
   created_at: string;
@@ -357,37 +379,64 @@ export default function ProfilePage() {
       typedHoursData
         .filter((log) => !log.is_paid) // Only process unpaid services
         .forEach((log) => {
-          const serviceType = log.request.service_type;
+          // Check if this is a quick service request (any of the service types is a quick service)
+          const isQuickServiceRequest = log.request.service_type.some((type) =>
+            isQuickService(type)
+          );
 
-          if (!statistics.serviceTypeStats[serviceType]) {
-            statistics.serviceTypeStats[serviceType] = {
-              hours: 0,
-              earnings: 0,
-              count: 0,
-            };
+          // For quick services, add commission only once per request
+          if (isQuickServiceRequest) {
+            // Add one commission for the entire request
+            const earnings = -COMMISSION_RATES.quick_service; // Negative because nurse owes us
+
+            // Add the commission to the first quick service type found
+            const firstQuickServiceType = log.request.service_type.find(
+              (type) => isQuickService(type)
+            )!;
+            if (!statistics.serviceTypeStats[firstQuickServiceType]) {
+              statistics.serviceTypeStats[firstQuickServiceType] = {
+                hours: 0,
+                earnings: 0,
+                count: 0,
+              };
+            }
+            statistics.serviceTypeStats[firstQuickServiceType].count += 1;
+            statistics.serviceTypeStats[firstQuickServiceType].earnings +=
+              earnings;
+            statistics.totalEarnings += earnings;
           }
 
-          statistics.serviceTypeStats[serviceType].count += 1;
+          // Process each service type for hours and non-quick-service earnings
+          log.request.service_type.forEach((serviceType) => {
+            if (!statistics.serviceTypeStats[serviceType]) {
+              statistics.serviceTypeStats[serviceType] = {
+                hours: 0,
+                earnings: 0,
+                count: 0,
+              };
+            }
 
-          // Calculate earnings based on service type
-          let earnings = 0;
-          if (isQuickService(serviceType)) {
-            // For quick services, the nurse owes us commission
-            earnings = -COMMISSION_RATES.quick_service; // Negative because nurse owes us
-          } else if (serviceType.includes("psychiatric") && profileData) {
-            // For psychiatric services, we owe the nurse per hour
-            earnings = -(log.hours * profileData.psychiatric_care_hourly_rate); // Negative because we owe nurse
-            statistics.serviceTypeStats[serviceType].hours += log.hours;
-            statistics.totalHours += log.hours;
-          } else if (serviceType.includes("private") && profileData) {
-            // For normal private services, we owe the nurse per hour
-            earnings = -(log.hours * profileData.normal_care_hourly_rate); // Negative because we owe nurse
-            statistics.serviceTypeStats[serviceType].hours += log.hours;
-            statistics.totalHours += log.hours;
-          }
+            // Skip earnings calculation for quick services as we handled it above
+            if (!isQuickService(serviceType)) {
+              let earnings = 0;
+              if (serviceType.includes("psychiatric") && profileData) {
+                // For psychiatric services, we owe the nurse per hour
+                earnings = -(
+                  log.hours * profileData.psychiatric_care_hourly_rate
+                ); // Negative because we owe nurse
+                statistics.serviceTypeStats[serviceType].hours += log.hours;
+                statistics.totalHours += log.hours;
+              } else if (serviceType.includes("private") && profileData) {
+                // For normal private services, we owe the nurse per hour
+                earnings = -(log.hours * profileData.normal_care_hourly_rate); // Negative because we owe nurse
+                statistics.serviceTypeStats[serviceType].hours += log.hours;
+                statistics.totalHours += log.hours;
+              }
 
-          statistics.serviceTypeStats[serviceType].earnings += earnings;
-          statistics.totalEarnings += earnings;
+              statistics.serviceTypeStats[serviceType].earnings += earnings;
+              statistics.totalEarnings += earnings;
+            }
+          });
         });
 
       setStats(statistics);
@@ -870,23 +919,31 @@ export default function ProfilePage() {
           <ResponsiveTableCard>
             <Table
               dataSource={nurseRequests}
+              rowKey={(record) => `request-${record.id}`}
               columns={[
                 {
-                  title: "Service Type",
+                  title: "Service Types",
                   dataIndex: "service_type",
                   key: "service_type",
-                  render: (type: string) => (
-                    <Tag
-                      color={
-                        QUICK_SERVICE_TYPES.includes(type)
-                          ? "blue"
-                          : type.includes("psychiatric")
-                          ? "purple"
-                          : "green"
-                      }
+                  render: (types: string[]) => (
+                    <div
+                      style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}
                     >
-                      {type.replace(/_/g, " ").toUpperCase()}
-                    </Tag>
+                      {types.map((type, index) => (
+                        <Tag
+                          key={`${type}-${index}`}
+                          color={
+                            QUICK_SERVICE_TYPES.includes(type)
+                              ? "blue"
+                              : type.includes("psychiatric")
+                              ? "purple"
+                              : "green"
+                          }
+                        >
+                          {type.replace(/_/g, " ").toUpperCase()}
+                        </Tag>
+                      ))}
+                    </div>
                   ),
                   width: 200,
                 },
@@ -968,6 +1025,7 @@ export default function ProfilePage() {
           <ResponsiveTableCard>
             <Table
               dataSource={workingHours}
+              rowKey={(record) => `hours-${record.id}`}
               columns={[
                 {
                   title: "Date",
@@ -978,27 +1036,34 @@ export default function ProfilePage() {
                   fixed: "left",
                 },
                 {
-                  title: "Service Type",
+                  title: "Service Types",
                   dataIndex: ["request", "service_type"],
                   key: "service_type",
-                  render: (type) => (
-                    <Tag
-                      color={
-                        QUICK_SERVICE_TYPES.includes(type)
-                          ? "blue"
-                          : type.includes("psychiatric")
-                          ? "purple"
-                          : "green"
-                      }
-                      style={{
-                        maxWidth: "200px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
+                  render: (types: string[]) => (
+                    <div
+                      style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}
                     >
-                      {type.replace(/_/g, " ").toUpperCase()}
-                    </Tag>
+                      {types.map((type, index) => (
+                        <Tag
+                          key={`${type}-${index}`}
+                          color={
+                            QUICK_SERVICE_TYPES.includes(type)
+                              ? "blue"
+                              : type.includes("psychiatric")
+                              ? "purple"
+                              : "green"
+                          }
+                          style={{
+                            maxWidth: "200px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {type.replace(/_/g, " ").toUpperCase()}
+                        </Tag>
+                      ))}
+                    </div>
                   ),
                   width: 200,
                   ellipsis: true,

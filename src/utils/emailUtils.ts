@@ -5,7 +5,7 @@ type EmailData = {
   patientName: string;
   patientArea: string;
   patientLocation: string;
-  serviceType: string;
+  serviceType: string[];
   details: string;
   imageUrl?: string;
 };
@@ -33,7 +33,7 @@ export const sendNotificationToNurses = async (emailData: EmailData) => {
 
     // For quick services, also get nurses in the same area
     let areaSpecificNurses: { email: string }[] = [];
-    if (QUICK_SERVICES.includes(emailData.serviceType)) {
+    if (emailData.serviceType.some((type) => QUICK_SERVICES.includes(type))) {
       const { data: nurses } = await supabase
         .from("profiles")
         .select("email")
@@ -59,7 +59,7 @@ export const sendNotificationToNurses = async (emailData: EmailData) => {
       patient_name: emailData.patientName,
       patient_area: emailData.patientArea,
       patient_location: emailData.patientLocation,
-      service_type: emailData.serviceType,
+      service_type: emailData.serviceType.join(", "),
       details: emailData.details,
     };
 
@@ -80,7 +80,7 @@ export const sendNurseAssignmentRequest = async (
   requestId: string,
   nurseName: string,
   patientName: string,
-  serviceType: string
+  serviceType: string[]
 ) => {
   try {
     // Get super admin emails
@@ -97,7 +97,7 @@ export const sendNurseAssignmentRequest = async (
       to_email: uniqueEmails.join(","),
       nurse_name: nurseName,
       patient_name: patientName,
-      service_type: serviceType,
+      service_type: serviceType.join(", "),
       request_id: requestId,
     };
 

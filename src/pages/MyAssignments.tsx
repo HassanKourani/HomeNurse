@@ -12,7 +12,7 @@ const { Title, Text } = Typography;
 
 type DatabaseResponse = {
   id: string;
-  service_type:
+  service_type: Array<
     | "blood_test"
     | "im"
     | "iv"
@@ -22,7 +22,8 @@ type DatabaseResponse = {
     | "full_time_private_normal"
     | "part_time_private_normal"
     | "full_time_private_psychiatric"
-    | "part_time_private_psychiatric";
+    | "part_time_private_psychiatric"
+  >;
   details: string;
   status: "pending" | "accepted" | "completed" | "cancelled";
   created_at: string;
@@ -379,11 +380,17 @@ export default function MyAssignments() {
       width: 250,
     },
     {
-      title: "Service Type",
+      title: "Service Types",
       dataIndex: "service_type",
       key: "service_type",
-      render: (type: keyof typeof serviceTypeLabels) => (
-        <Tag color={getServiceTypeColor(type)}>{serviceTypeLabels[type]}</Tag>
+      render: (types: DatabaseResponse["service_type"]) => (
+        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+          {types.map((type, index) => (
+            <Tag key={index} color={getServiceTypeColor(type)}>
+              {serviceTypeLabels[type]}
+            </Tag>
+          ))}
+        </div>
       ),
       width: 200,
     },
@@ -439,10 +446,22 @@ export default function MyAssignments() {
       </div>
       <div className="card-content">
         <div className="card-item">
-          <span className="label">Service Type</span>
-          <Tag color={getServiceTypeColor(request.service_type)}>
-            {serviceTypeLabels[request.service_type]}
-          </Tag>
+          <span className="label">Service Types</span>
+          <div
+            className="value"
+            style={{
+              display: "flex",
+              gap: "4px",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+            }}
+          >
+            {request.service_type.map((type, index) => (
+              <Tag key={index} color={getServiceTypeColor(type)}>
+                {serviceTypeLabels[type]}
+              </Tag>
+            ))}
+          </div>
         </div>
         <div className="card-item">
           <span className="label">Contact</span>

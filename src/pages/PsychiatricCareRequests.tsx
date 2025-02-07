@@ -10,9 +10,9 @@ const { Title, Text } = Typography;
 
 type DatabaseResponse = {
   id: string;
-  service_type:
-    | "full_time_private_psychiatric"
-    | "part_time_private_psychiatric";
+  service_type: Array<
+    "full_time_private_psychiatric" | "part_time_private_psychiatric"
+  >;
   details: string;
   status: "pending" | "accepted" | "completed" | "cancelled";
   created_at: string;
@@ -23,6 +23,20 @@ type DatabaseResponse = {
     area: string;
   };
 };
+
+interface RawResponse {
+  id: string;
+  service_type: DatabaseResponse["service_type"];
+  details: string;
+  status: DatabaseResponse["status"];
+  created_at: string;
+  patient: {
+    full_name: string;
+    phone_number: string;
+    location: string;
+    area: string;
+  };
+}
 
 const PageContainer = styled(motion.div)`
   padding: 24px;
@@ -253,7 +267,7 @@ export default function PsychiatricCareRequests() {
             )
           `
           )
-          .in("service_type", [
+          .overlaps("service_type", [
             "full_time_private_psychiatric",
             "part_time_private_psychiatric",
           ])
@@ -263,10 +277,11 @@ export default function PsychiatricCareRequests() {
         if (error) throw error;
 
         if (data) {
-          const validData = data.filter(
+          const validData = (data as unknown as RawResponse[]).filter(
             (item) =>
               item.id &&
-              item.service_type &&
+              Array.isArray(item.service_type) &&
+              item.service_type.length > 0 &&
               item.details &&
               item.status &&
               item.created_at &&
@@ -276,7 +291,7 @@ export default function PsychiatricCareRequests() {
               "phone_number" in item.patient &&
               "location" in item.patient &&
               "area" in item.patient
-          ) as unknown as DatabaseResponse[];
+          ) as DatabaseResponse[];
 
           setRequests(validData);
         }
@@ -318,11 +333,17 @@ export default function PsychiatricCareRequests() {
       width: 250,
     },
     {
-      title: "Service Type",
+      title: "Service Types",
       dataIndex: "service_type",
       key: "service_type",
-      render: (type: keyof typeof serviceTypeLabels) => (
-        <Tag color="purple">{serviceTypeLabels[type]}</Tag>
+      render: (types: DatabaseResponse["service_type"]) => (
+        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+          {types.map((type, index) => (
+            <Tag key={index} color="purple">
+              {serviceTypeLabels[type]}
+            </Tag>
+          ))}
+        </div>
       ),
       width: 200,
     },
@@ -371,8 +392,22 @@ export default function PsychiatricCareRequests() {
       </div>
       <div className="card-content">
         <div className="card-item">
-          <span className="label">Service Type</span>
-          <Tag color="purple">{serviceTypeLabels[request.service_type]}</Tag>
+          <span className="label">Service Types</span>
+          <div
+            className="value"
+            style={{
+              display: "flex",
+              gap: "4px",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+            }}
+          >
+            {request.service_type.map((type, index) => (
+              <Tag key={index} color="purple">
+                {serviceTypeLabels[type]}
+              </Tag>
+            ))}
+          </div>
         </div>
         <div className="card-item">
           <span className="label">Contact</span>

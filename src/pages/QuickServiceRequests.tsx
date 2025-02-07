@@ -10,13 +10,9 @@ const { Title, Text } = Typography;
 
 type DatabaseResponse = {
   id: string;
-  service_type:
-    | "blood_test"
-    | "im"
-    | "iv"
-    | "patient_care"
-    | "hemo_vs"
-    | "other";
+  service_type: Array<
+    "blood_test" | "im" | "iv" | "patient_care" | "hemo_vs" | "other"
+  >;
   details: string;
   status: "pending" | "accepted" | "completed" | "cancelled";
   created_at: string;
@@ -275,7 +271,7 @@ export default function QuickServiceRequests() {
             )
           `
           )
-          .in("service_type", [
+          .overlaps("service_type", [
             "blood_test",
             "im",
             "iv",
@@ -288,18 +284,25 @@ export default function QuickServiceRequests() {
 
         if (error) throw error;
 
-        // Transform the data - patient is already a single object
-        const transformedData =
-          (data as unknown as RawResponse[])?.map((item) => ({
-            id: item.id,
-            service_type: item.service_type,
-            details: item.details,
-            status: item.status,
-            created_at: item.created_at,
-            patient: item.patient,
-          })) || [];
+        if (data) {
+          const validData = (data as unknown as RawResponse[]).filter(
+            (item) =>
+              item.id &&
+              Array.isArray(item.service_type) &&
+              item.service_type.length > 0 &&
+              item.details &&
+              item.status &&
+              item.created_at &&
+              item.patient &&
+              typeof item.patient === "object" &&
+              "full_name" in item.patient &&
+              "phone_number" in item.patient &&
+              "location" in item.patient &&
+              "area" in item.patient
+          ) as DatabaseResponse[];
 
-        setRequests(transformedData);
+          setRequests(validData);
+        }
       } catch (error) {
         console.error("Error fetching requests:", error);
         message.error("Failed to fetch requests");
@@ -338,11 +341,17 @@ export default function QuickServiceRequests() {
       width: 250,
     },
     {
-      title: "Service Type",
+      title: "Service Types",
       dataIndex: "service_type",
       key: "service_type",
-      render: (type: keyof typeof serviceTypeLabels) => (
-        <Tag color="cyan">{serviceTypeLabels[type]}</Tag>
+      render: (types: DatabaseResponse["service_type"]) => (
+        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+          {types.map((type, index) => (
+            <Tag key={index} color="cyan">
+              {serviceTypeLabels[type]}
+            </Tag>
+          ))}
+        </div>
       ),
       width: 200,
     },
@@ -391,8 +400,22 @@ export default function QuickServiceRequests() {
       </div>
       <div className="card-content">
         <div className="card-item">
-          <span className="label">Service Type</span>
-          <Tag color="cyan">{serviceTypeLabels[request.service_type]}</Tag>
+          <span className="label">Service Types</span>
+          <div
+            className="value"
+            style={{
+              display: "flex",
+              gap: "4px",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+            }}
+          >
+            {request.service_type.map((type, index) => (
+              <Tag key={index} color="cyan">
+                {serviceTypeLabels[type]}
+              </Tag>
+            ))}
+          </div>
         </div>
         <div className="card-item">
           <span className="label">Contact</span>

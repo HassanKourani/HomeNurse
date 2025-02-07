@@ -41,7 +41,7 @@ const { Title, Text } = Typography;
 
 type RequestDetails = {
   id: string;
-  service_type:
+  service_type: Array<
     | "blood_test"
     | "im"
     | "iv"
@@ -51,7 +51,8 @@ type RequestDetails = {
     | "full_time_private_normal"
     | "part_time_private_normal"
     | "full_time_private_psychiatric"
-    | "part_time_private_psychiatric";
+    | "part_time_private_psychiatric"
+  >;
   details: string;
   status: "pending" | "accepted" | "completed" | "cancelled";
   created_at: string;
@@ -707,7 +708,7 @@ export default function RequestDetails() {
       let nurseToAdd: NurseData = nurseData as NurseData;
 
       // If it's a quick service, automatically log one hour
-      if (request && isQuickService(request.service_type)) {
+      if (request && isQuickService(request.service_type[0])) {
         try {
           await logOneHourForNurse(user.id, parseInt(id));
           nurseToAdd = {
@@ -752,7 +753,14 @@ export default function RequestDetails() {
   };
 
   const handleRemoveNurse = async (nurseId: string) => {
-    if (!id) return;
+    if (!id || userRole !== "superAdmin") {
+      notificationApi.error({
+        message: "Error",
+        description: "Only super admins can remove nurses from requests",
+        placement: "topRight",
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase.rpc("remove_nurse_from_request", {
@@ -884,7 +892,8 @@ export default function RequestDetails() {
     userRole === "superAdmin" ||
     (userRole !== "patient" &&
       request?.assigned_nurses.some(
-        (nurse) => nurse.id === user?.id && isQuickService(request.service_type)
+        (nurse) =>
+          nurse.id === user?.id && isQuickService(request.service_type[0])
       ));
 
   const canApproveRequest =
@@ -892,7 +901,7 @@ export default function RequestDetails() {
     userRole !== "patient" &&
     !request?.assigned_nurses.length &&
     request?.status === "pending" &&
-    (isQuickService(request.service_type) || userRole === "superAdmin");
+    (isQuickService(request.service_type[0]) || userRole === "superAdmin");
 
   const canCancelRequest =
     request?.status === "accepted" && userRole === "superAdmin";
@@ -905,7 +914,7 @@ export default function RequestDetails() {
     userRole !== "patient" &&
     userRole !== "superAdmin" &&
     request &&
-    !isQuickService(request.service_type) &&
+    !isQuickService(request.service_type[0]) &&
     request.status === "pending" &&
     !request.assigned_nurses.some((nurse) => nurse.id === user?.id) &&
     !hasRequestedAssignment;
@@ -951,7 +960,7 @@ export default function RequestDetails() {
         let finalNurseData = nurseToAdd;
 
         // If it's a quick service, automatically log one hour
-        if (request && isQuickService(request.service_type)) {
+        if (request && isQuickService(request.service_type[0])) {
           try {
             await logOneHourForNurse(nurseId, parseInt(id));
             finalNurseData = {
@@ -1347,7 +1356,7 @@ export default function RequestDetails() {
                   </Button>
                 ) : userRole !== "patient" &&
                   userRole !== "superAdmin" &&
-                  !isQuickService(request.service_type) &&
+                  !isQuickService(request.service_type[0]) &&
                   hasRequestedAssignment ? (
                   <Button
                     disabled
@@ -1360,10 +1369,14 @@ export default function RequestDetails() {
               </motion.div>
             }
           >
-            <Descriptions.Item label="Service Type">
-              <Tag color={getServiceTypeColor(request.service_type)}>
-                {serviceTypeLabels[request.service_type]}
-              </Tag>
+            <Descriptions.Item label="Service Types">
+              <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                {request.service_type.map((type, index) => (
+                  <Tag key={index} color={getServiceTypeColor(type)}>
+                    {serviceTypeLabels[type]}
+                  </Tag>
+                ))}
+              </div>
             </Descriptions.Item>
             <Descriptions.Item label="Status">
               <Tag color={statusColors[request.status]}>
@@ -1376,7 +1389,7 @@ export default function RequestDetails() {
             </Descriptions.Item>
             <Descriptions.Item label="Contact">
               {userRole === "superAdmin" ||
-              isQuickService(request.service_type) ||
+              isQuickService(request.service_type[0]) ||
               request.assigned_nurses.some((nurse) => nurse.id === user?.id)
                 ? request.patient.phone_number
                 : "Contact hidden - Only visible to assigned nurses"}
@@ -1423,8 +1436,8 @@ export default function RequestDetails() {
                 >
                   <Text>
                     {request.price &&
-                    (isQuickService(request.service_type) ||
-                      (!isQuickService(request.service_type) &&
+                    (isQuickService(request.service_type[0]) ||
+                      (!isQuickService(request.service_type[0]) &&
                         userRole === "superAdmin"))
                       ? `$${request.price.toFixed(2)}`
                       : "Contact for price"}
@@ -1554,7 +1567,7 @@ export default function RequestDetails() {
             </Descriptions.Item>
             {request.assigned_nurses && request.assigned_nurses.length > 0 && (
               <Descriptions.Item label="Assigned Nurses" span={2}>
-                {isQuickService(request.service_type) &&
+                {isQuickService(request.service_type[0]) &&
                   userRole !== "patient" &&
                   (userRole === "superAdmin" ||
                     request.assigned_nurses.some(
@@ -1624,8 +1637,7 @@ export default function RequestDetails() {
                         )}
                       </div>
                     </div>
-                    {(userRole === "superAdmin" ||
-                      (userRole !== "patient" && nurse.id === user?.id)) && (
+                    {userRole === "superAdmin" && (
                       <Button
                         danger
                         size="small"
