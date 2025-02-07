@@ -62,19 +62,6 @@ type LandingFormValues = {
   details: string;
 };
 
-const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
-  full_time_private_normal: "Full time private",
-  full_time_private_psychiatric: "Full time psychiatric",
-  part_time_private_normal: "Part time private",
-  part_time_private_psychiatric: "Part time psychiatric",
-  blood_test: "Blood test",
-  im: "Intramuscular (IM)",
-  iv: "Intravenous (IV)",
-  patient_care: "Care for patients",
-  hemo_vs: "Hemo+ v/s",
-  other: "Other",
-};
-
 const AREA_LABELS: Record<Area, string> = {
   beirut: "Beirut (بيروت)",
   mount_lebanon: "Mount Lebanon (جبل لبنان) - Coming Soon",
@@ -82,6 +69,25 @@ const AREA_LABELS: Record<Area, string> = {
   south_lebanon: "South Lebanon (لبنان الجنوبي) - Coming Soon",
   bekaa: "Bekaa (البقاع) - Coming Soon",
 };
+
+const PRIVATE_CARE_SERVICES = [
+  "full_time_private_normal",
+  "full_time_private_psychiatric",
+  "part_time_private_normal",
+  "part_time_private_psychiatric",
+] as const;
+
+const QUICK_SERVICES = [
+  "blood_test",
+  "im",
+  "iv",
+  "patient_care",
+  "hemo_vs",
+  "other",
+] as const;
+
+type PrivateCareService = (typeof PRIVATE_CARE_SERVICES)[number];
+type QuickService = (typeof QUICK_SERVICES)[number];
 
 const ENABLED_AREAS = ["beirut"];
 
@@ -793,7 +799,7 @@ export default function LandingForm() {
             },
           ]}
         >
-          <FixedWidthSelect
+          <FixedWidthSelect<ServiceType>
             mode="multiple"
             placeholder={t("form.fields.serviceType.placeholder")}
             allowClear
@@ -811,14 +817,83 @@ export default function LandingForm() {
                 </Tag>
               );
             }}
+            onChange={(value: unknown) => {
+              const selectedValues = value as ServiceType[];
+              const lastSelected = selectedValues[selectedValues.length - 1];
+
+              if (!lastSelected) {
+                // If clearing all selections
+                form.setFieldValue("service_type", []);
+                return;
+              }
+
+              // Check if the last selected item is a private care service
+              const isLastPrivate = PRIVATE_CARE_SERVICES.includes(
+                lastSelected as PrivateCareService
+              );
+
+              if (isLastPrivate) {
+                // If selecting a private care service, only allow that one
+                form.setFieldValue("service_type", [lastSelected]);
+              } else {
+                // For quick services, allow multiple but filter out any private care services
+                const filteredValues = selectedValues.filter((v) =>
+                  QUICK_SERVICES.includes(v as QuickService)
+                );
+                form.setFieldValue("service_type", filteredValues);
+              }
+            }}
           >
-            {(
-              Object.entries(SERVICE_TYPE_LABELS) as [ServiceType, string][]
-            ).map(([value]) => (
-              <Select.Option key={value} value={value}>
-                {t(`form.fields.serviceTypes.${value}`)}
-              </Select.Option>
-            ))}
+            <Select.OptGroup
+              label={t(
+                "form.fields.serviceTypes.privateGroup",
+                "Private Care Services"
+              )}
+            >
+              {PRIVATE_CARE_SERVICES.map((value) => {
+                const currentValues = form.getFieldValue(
+                  "service_type"
+                ) as ServiceType[];
+                const hasPrivate = currentValues?.some((v) =>
+                  PRIVATE_CARE_SERVICES.includes(v as PrivateCareService)
+                );
+                const isDisabled = hasPrivate && value !== currentValues?.[0];
+
+                return (
+                  <Select.Option
+                    key={value}
+                    value={value}
+                    disabled={isDisabled}
+                  >
+                    {t(`form.fields.serviceTypes.${value}`)}
+                  </Select.Option>
+                );
+              })}
+            </Select.OptGroup>
+
+            <Select.OptGroup
+              label={t("form.fields.serviceTypes.quickGroup", "Quick Services")}
+            >
+              {QUICK_SERVICES.map((value) => {
+                const currentValues = form.getFieldValue(
+                  "service_type"
+                ) as ServiceType[];
+                const hasPrivate = currentValues?.some((v) =>
+                  PRIVATE_CARE_SERVICES.includes(v as PrivateCareService)
+                );
+                const isDisabled = hasPrivate;
+
+                return (
+                  <Select.Option
+                    key={value}
+                    value={value}
+                    disabled={isDisabled}
+                  >
+                    {t(`form.fields.serviceTypes.${value}`)}
+                  </Select.Option>
+                );
+              })}
+            </Select.OptGroup>
           </FixedWidthSelect>
         </Form.Item>
 

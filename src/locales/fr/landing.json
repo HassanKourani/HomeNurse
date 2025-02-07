@@ -80,7 +80,9 @@
         "iv": "Intraveineuse (IV)",
         "patient_care": "Soins aux patients",
         "hemo_vs": "Hémo+ s/v",
-        "other": "Autre"
+        "other": "Autre",
+        "privateGroup": "Services de Soins Privés",
+        "quickGroup": "Services Rapides"
       }
     },
     "buttons": {
