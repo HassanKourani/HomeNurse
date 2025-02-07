@@ -615,11 +615,6 @@ export default function LandingForm() {
         });
       } catch (emailError) {
         console.error("Error sending email notifications:", emailError);
-        notification.warning({
-          message: "Warning",
-          description: "Request created but failed to send email notifications",
-          placement: "topRight",
-        });
       }
 
       // After successful request creation, store in localStorage
