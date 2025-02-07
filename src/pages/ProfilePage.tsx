@@ -391,6 +391,9 @@ export default function ProfilePage() {
       typedHoursData
         .filter((log) => !log.is_paid) // Only process unpaid services
         .forEach((log) => {
+          // Add to total hours regardless of service type
+          statistics.totalHours += log.hours;
+
           // Check if this is a quick service request (any of the service types is a quick service)
           const isQuickServiceRequest = log.request.service_type.some((type) =>
             isQuickService(type)
@@ -407,10 +410,13 @@ export default function ProfilePage() {
             )!;
             if (!statistics.serviceTypeStats[firstQuickServiceType]) {
               statistics.serviceTypeStats[firstQuickServiceType] = {
-                hours: 0,
+                hours: log.hours, // Add hours here
                 earnings: 0,
                 count: 0,
               };
+            } else {
+              statistics.serviceTypeStats[firstQuickServiceType].hours +=
+                log.hours;
             }
             statistics.serviceTypeStats[firstQuickServiceType].count += 1;
             statistics.serviceTypeStats[firstQuickServiceType].earnings +=
@@ -434,14 +440,12 @@ export default function ProfilePage() {
                   hourlyRate * (1 - COMMISSION_RATES.private_care_percentage); // 90% of price
                 const earnings = -(nurseShare * log.hours); // Negative because we owe nurse
                 statistics.serviceTypeStats[serviceType].hours += log.hours;
-                statistics.totalHours += log.hours;
                 statistics.serviceTypeStats[serviceType].earnings += earnings;
                 statistics.totalEarnings += earnings;
               }
             });
           }
         });
-
       setStats(statistics);
     } catch (error) {
       console.error("Error fetching profile data:", error);
