@@ -45,8 +45,9 @@ type ServiceType =
   | "hemo_vs"
   | "other";
 
-type Area =
+export type Area =
   | "beirut"
+  | "near_beirut"
   | "mount_lebanon"
   | "north_lebanon"
   | "south_lebanon"
@@ -64,6 +65,8 @@ type LandingFormValues = {
 
 const AREA_LABELS: Record<Area, string> = {
   beirut: "Beirut (بيروت)",
+  near_beirut:
+    "Near Beirut - Khalde, Bchamoun, Aramoun (ضواحي بيروت - خلدة، بشامون، عرمون)",
   mount_lebanon: "Mount Lebanon (جبل لبنان) - Coming Soon",
   north_lebanon: "North Lebanon (لبنان الشمالي) - Coming Soon",
   south_lebanon: "South Lebanon (لبنان الجنوبي) - Coming Soon",
@@ -89,7 +92,7 @@ const QUICK_SERVICES = [
 type PrivateCareService = (typeof PRIVATE_CARE_SERVICES)[number];
 type QuickService = (typeof QUICK_SERVICES)[number];
 
-const ENABLED_AREAS = ["beirut"];
+const ENABLED_AREAS = ["beirut", "near_beirut"];
 
 const PageWrapper = styled.div`
   min-height: 100vh;
@@ -738,7 +741,11 @@ export default function LandingForm() {
             { required: true, message: t("form.fields.area.placeholder") },
           ]}
         >
-          <Select placeholder={t("form.fields.area.placeholder")}>
+          <FixedWidthSelect<Area>
+            placeholder={t("form.fields.area.placeholder")}
+            allowClear
+            showArrow
+          >
             {(Object.entries(AREA_LABELS) as [Area, string][]).map(
               ([value, label]) => (
                 <Select.Option
@@ -750,7 +757,7 @@ export default function LandingForm() {
                 </Select.Option>
               )
             )}
-          </Select>
+          </FixedWidthSelect>
         </Form.Item>
 
         <Form.Item

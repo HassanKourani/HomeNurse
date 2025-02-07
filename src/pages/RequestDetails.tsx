@@ -36,6 +36,7 @@ import { useAuth } from "../utils/AuthContext";
 import dayjs from "dayjs";
 import { useNotification } from "../utils/NotificationProvider";
 import { sendNurseAssignmentRequest } from "../utils/emailUtils";
+import { Area } from "../components/Landing/LandingForm";
 
 const { Title, Text } = Typography;
 
@@ -271,6 +272,15 @@ const serviceTypeLabels = {
   part_time_private_normal: "Part Time Regular Care",
   full_time_private_psychiatric: "Full Time Psychiatric Care",
   part_time_private_psychiatric: "Part Time Psychiatric Care",
+};
+
+const areaLabels: Record<Area, string> = {
+  beirut: "Beirut",
+  near_beirut: "Near Beirut",
+  mount_lebanon: "Mount Lebanon",
+  north_lebanon: "North Lebanon",
+  south_lebanon: "South Lebanon",
+  bekaa: "Bekaa",
 };
 
 const statusColors = {
@@ -1413,7 +1423,9 @@ export default function RequestDetails() {
                 : "Contact hidden - Only visible to assigned nurses"}
             </Descriptions.Item>
             <Descriptions.Item label="Location">
-              {request.patient.area} - {request.patient.location}
+              {areaLabels[request.patient.area as keyof typeof areaLabels] ||
+                request.patient.area}{" "}
+              - {request.patient.location}
             </Descriptions.Item>
             <Descriptions.Item label="Created At">
               {new Date(request.created_at).toLocaleString()}
