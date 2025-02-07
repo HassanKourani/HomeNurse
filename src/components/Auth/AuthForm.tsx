@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Form, Input, Button, Alert, Card, Select, Typography } from "antd";
 import styled from "styled-components";
 import { useAuth } from "../../utils/AuthContext";
-import { useNotification } from "../../utils/NotificationProvider";
 import {
   UserOutlined,
   LockOutlined,
   PhoneOutlined,
   IdcardOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
 
@@ -186,8 +186,8 @@ const FormSubtitle = styled(Text)`
 export default function AuthForm({ mode }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
   const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
   const [form] = Form.useForm();
-  const notification = useNotification();
 
   const handleSubmit = async (values: SignUpFormValues | SignInFormValues) => {
     setError(null);
@@ -196,27 +196,18 @@ export default function AuthForm({ mode }: AuthFormProps) {
       if (mode === "signup") {
         const { email, password, full_name, phone_number, role, area } =
           values as SignUpFormValues;
-        await signUp(email, password, {
+        const success = await signUp(email, password, {
           full_name,
           phone_number,
           role,
           area,
         });
-        notification.success({
-          message: "Success",
-          description: "Account created successfully",
-          placement: "topRight",
-        });
-        form.resetFields();
+        if (success) {
+          navigate("/waiting-approval");
+        }
       } else {
         const { email, password } = values as SignInFormValues;
         await signIn(email, password);
-        notification.success({
-          message: "Success",
-          description: "Sign in successful",
-          placement: "topRight",
-        });
-        form.resetFields();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");

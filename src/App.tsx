@@ -30,6 +30,7 @@ import {
 } from "@ant-design/icons";
 import { NotificationProvider } from "./utils/NotificationProvider";
 import ProfilePage from "./pages/ProfilePage";
+import WaitingApprovalPage from "./pages/WaitingApprovalPage";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -721,6 +722,7 @@ function AppWithProvider() {
             <Route path="/my-assignments" element={<MyAssignments />} />
             <Route path="/request/:id" element={<RequestDetails />} />
             <Route path="/profile/:nurseId" element={<ProfilePage />} />
+            <Route path="/waiting-approval" element={<WaitingApprovalPage />} />
             <Route path="/*" element={<App />} />
           </Routes>
         </BrowserRouter>

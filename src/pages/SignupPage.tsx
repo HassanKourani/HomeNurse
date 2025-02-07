@@ -1,10 +1,7 @@
-import { useEffect } from "react";
 import { Layout, Typography } from "antd";
 import styled from "styled-components";
 import AuthForm from "../components/Auth/AuthForm";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../utils/AuthContext";
-import { useNotification } from "../utils/NotificationProvider";
+import { Link } from "react-router-dom";
 
 const { Title, Text } = Typography;
 
@@ -88,25 +85,6 @@ const StyledLink = styled(Link)`
 `;
 
 export default function SignupPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const notification = useNotification();
-
-  useEffect(() => {
-    const checkAccess = async () => {
-      if (user && user?.role !== "superAdmin") {
-        notification.error({
-          message: "Error",
-          description: "You are already logged in",
-          placement: "topRight",
-        });
-        navigate("/");
-      }
-    };
-
-    checkAccess();
-  }, [user, navigate, notification]);
-
   return (
     <StyledLayout>
       <MainContainer>

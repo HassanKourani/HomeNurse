@@ -562,6 +562,8 @@ export default function RequestDetails() {
           .from("profiles")
           .select("id, full_name, phone_number, role")
           .in("role", ["registered", "licensed", "practitioner"])
+          .is("is_approved", true)
+          .is("is_blocked", false)
           .order("full_name");
 
         if (error) throw error;

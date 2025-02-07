@@ -22,7 +22,7 @@ type AuthContextType = {
     email: string,
     password: string,
     profileData: ProfileData
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: profileData.role,
           area: profileData.area,
           updated_at: new Date().toISOString(),
-          is_approved: false, // Set to false by default for new nurse signups
+          is_approved: false,
         },
       ]);
 
@@ -88,7 +88,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await supabase.auth.admin.deleteUser(authData.user.id);
         throw new Error("Failed to create profile. Please try again.");
       }
+
+      // Sign out the user after successful registration
+      await signOut();
+
+      // Return success instead of navigating
+      return true;
     }
+    return false;
   };
 
   const signIn = async (email: string, password: string) => {
