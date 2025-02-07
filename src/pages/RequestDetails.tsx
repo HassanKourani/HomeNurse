@@ -332,6 +332,21 @@ const isQuickService = (serviceType: string) => {
 const logOneHourForNurse = async (nurseId: string, requestId: number) => {
   const today = dayjs().format("YYYY-MM-DD");
   try {
+    // First check if there's already a log for today
+    const { data: existingLog } = await supabase
+      .from("nurse_working_hours_log")
+      .select("*")
+      .eq("request_id", requestId)
+      .eq("nurse_id", nurseId)
+      .eq("work_date", today)
+      .single();
+
+    if (existingLog) {
+      // If a log already exists, don't create a new one
+      return;
+    }
+
+    // If no log exists, create a new one
     const { error } = await supabase.rpc("add_nurse_working_hours", {
       rid: requestId,
       nid: nurseId,
@@ -341,8 +356,11 @@ const logOneHourForNurse = async (nurseId: string, requestId: number) => {
     });
     if (error) throw error;
   } catch (error) {
-    console.error("Error logging automatic hour:", error);
-    throw error;
+    // Only throw if it's not a "no rows returned" error
+    if (error instanceof Error && !error.message.includes("no rows returned")) {
+      console.error("Error logging automatic hour:", error);
+      throw error;
+    }
   }
 };
 
