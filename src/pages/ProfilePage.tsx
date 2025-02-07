@@ -13,6 +13,7 @@ import {
   Button,
   message,
   Modal,
+  Input,
 } from "antd";
 import { motion } from "framer-motion";
 import styled from "styled-components";
@@ -25,6 +26,7 @@ import {
   CalendarOutlined,
   ArrowLeftOutlined,
   DeleteOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../utils/AuthContext";
 import supabase from "../utils/supabase";
@@ -33,12 +35,6 @@ import { useNavigate, useParams, Navigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
-
-// Constants for service rates
-const SERVICE_RATES = {
-  normal_private: 3.75, // per hour - what we owe the nurse
-  psychiatric: 4.0, // per hour - what we owe the nurse
-};
 
 // Commission rates for quick services (what nurse owes the company)
 const COMMISSION_RATES = {
@@ -102,6 +98,9 @@ interface Profile {
   role: string;
   created_at: string;
   email: string;
+  normal_care_hourly_rate: number;
+  psychiatric_care_hourly_rate: number;
+  rates_updated_at: string;
 }
 
 // Add this interface for request data
@@ -253,6 +252,12 @@ export default function ProfilePage() {
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [selectedLogId, setSelectedLogId] = useState<number | null>(null);
   const [nurseRequests, setNurseRequests] = useState<NurseRequest[]>([]);
+  const [isRateUpdateModalVisible, setIsRateUpdateModalVisible] =
+    useState(false);
+  const [newNormalRate, setNewNormalRate] = useState<number | null>(null);
+  const [newPsychiatricRate, setNewPsychiatricRate] = useState<number | null>(
+    null
+  );
 
   // Define fetchProfileData first
   const fetchProfileData = async () => {
@@ -369,14 +374,14 @@ export default function ProfilePage() {
           if (isQuickService(serviceType)) {
             // For quick services, the nurse owes us commission
             earnings = -COMMISSION_RATES.quick_service; // Negative because nurse owes us
-          } else if (serviceType.includes("psychiatric")) {
+          } else if (serviceType.includes("psychiatric") && profileData) {
             // For psychiatric services, we owe the nurse per hour
-            earnings = -(log.hours * SERVICE_RATES.psychiatric); // Negative because we owe nurse
+            earnings = -(log.hours * profileData.psychiatric_care_hourly_rate); // Negative because we owe nurse
             statistics.serviceTypeStats[serviceType].hours += log.hours;
             statistics.totalHours += log.hours;
-          } else if (serviceType.includes("private")) {
+          } else if (serviceType.includes("private") && profileData) {
             // For normal private services, we owe the nurse per hour
-            earnings = -(log.hours * SERVICE_RATES.normal_private); // Negative because we owe nurse
+            earnings = -(log.hours * profileData.normal_care_hourly_rate); // Negative because we owe nurse
             statistics.serviceTypeStats[serviceType].hours += log.hours;
             statistics.totalHours += log.hours;
           }
@@ -537,6 +542,34 @@ export default function ProfilePage() {
     setSelectedLogId(null);
   };
 
+  const handleRateUpdate = async () => {
+    if (!newNormalRate || !newPsychiatricRate) {
+      message.error("Please enter valid rates");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.rpc("update_nurse_rates", {
+        nurse_id_param: nurseId,
+        normal_rate_param: newNormalRate,
+        psychiatric_rate_param: newPsychiatricRate,
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        message.success("Rates updated successfully");
+        fetchProfileData(); // Refresh the profile data
+        setIsRateUpdateModalVisible(false);
+      } else {
+        message.error(data.message || "Failed to update rates");
+      }
+    } catch (error) {
+      console.error("Error updating rates:", error);
+      message.error("Failed to update rates");
+    }
+  };
+
   // Show loading state while checking authorization
   if (authorized === null || loading) {
     return (
@@ -603,6 +636,38 @@ export default function ProfilePage() {
         </p>
       </Modal>
 
+      <Modal
+        title="Update Hourly Rates"
+        open={isRateUpdateModalVisible}
+        onOk={handleRateUpdate}
+        onCancel={() => setIsRateUpdateModalVisible(false)}
+        okText="Update Rates"
+        cancelText="Cancel"
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text>Normal Care Hourly Rate ($)</Text>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={newNormalRate || ""}
+            onChange={(e) => setNewNormalRate(parseFloat(e.target.value))}
+            style={{ width: "100%", marginTop: 8 }}
+          />
+        </div>
+        <div>
+          <Text>Psychiatric Care Hourly Rate ($)</Text>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={newPsychiatricRate || ""}
+            onChange={(e) => setNewPsychiatricRate(parseFloat(e.target.value))}
+            style={{ width: "100%", marginTop: 8 }}
+          />
+        </div>
+      </Modal>
+
       <BackButton icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
         Back
       </BackButton>
@@ -622,23 +687,44 @@ export default function ProfilePage() {
               {profile?.full_name}
             </Title>
             {isSuperAdmin && user?.id !== nurseId && (
-              <Button
-                type="primary"
-                onClick={handlePayment}
-                style={{
-                  background: "linear-gradient(120deg, #1890ff, #096dd9)",
-                  border: "none",
-                  boxShadow: "0 2px 8px rgba(24, 144, 255, 0.25)",
-                  height: "40px",
-                  borderRadius: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-                icon={<DollarOutlined />}
-              >
-                Process Payment
-              </Button>
+              <>
+                <Button
+                  type="primary"
+                  onClick={handlePayment}
+                  style={{
+                    background: "linear-gradient(120deg, #1890ff, #096dd9)",
+                    border: "none",
+                    boxShadow: "0 2px 8px rgba(24, 144, 255, 0.25)",
+                    height: "40px",
+                    borderRadius: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                  icon={<DollarOutlined />}
+                >
+                  Process Payment
+                </Button>
+                <Button
+                  onClick={() => {
+                    setNewNormalRate(profile?.normal_care_hourly_rate || null);
+                    setNewPsychiatricRate(
+                      profile?.psychiatric_care_hourly_rate || null
+                    );
+                    setIsRateUpdateModalVisible(true);
+                  }}
+                  style={{
+                    height: "40px",
+                    borderRadius: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                  icon={<EditOutlined />}
+                >
+                  Update Rates
+                </Button>
+              </>
             )}
           </div>
           <Text className="profile-subtitle">
@@ -707,7 +793,7 @@ export default function ProfilePage() {
               valueStyle={{ color: "#f5222d" }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Rate: ${SERVICE_RATES.normal_private}/hour (Owed to Nurse)
+              Rate: ${profile?.normal_care_hourly_rate}/hour (Owed to Nurse)
             </div>
           </StatisticCard>
         </Col>
@@ -724,7 +810,8 @@ export default function ProfilePage() {
               valueStyle={{ color: "#f5222d" }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Rate: ${SERVICE_RATES.psychiatric}/hour (Owed to Nurse)
+              Rate: ${profile?.psychiatric_care_hourly_rate}/hour (Owed to
+              Nurse)
             </div>
           </StatisticCard>
         </Col>
