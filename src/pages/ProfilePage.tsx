@@ -39,6 +39,7 @@ const { TabPane } = Tabs;
 // Commission rates for quick services (what nurse owes the company)
 const COMMISSION_RATES = {
   quick_service: 3.0, // per service - commission owed by nurse to company
+  private_care_percentage: 0.1, // 10% commission for private care
 };
 
 // Quick service types list - exact matches from database
@@ -87,6 +88,7 @@ interface WorkingHoursLog {
       | "full_time_private_psychiatric"
       | "part_time_private_psychiatric"
     >;
+    price: number; // Add price field to interface
   };
 }
 
@@ -132,6 +134,7 @@ interface NurseRequest {
   details: string;
   status: string;
   created_at: string;
+  price: number;
   patient: {
     full_name: string;
     phone_number: string;
@@ -234,6 +237,12 @@ const ProfileHeader = styled.div`
 `;
 
 const StatisticCard = styled(StyledCard)`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
   .ant-statistic-title {
     color: #666;
     font-size: 14px;
@@ -307,6 +316,7 @@ export default function ProfilePage() {
             details,
             status,
             created_at,
+            price,
             patient:profiles!fk_patient (
               full_name,
               phone_number,
@@ -331,6 +341,7 @@ export default function ProfilePage() {
             details: request.details,
             status: request.status,
             created_at: request.created_at,
+            price: request.price,
             patient: {
               full_name: request.patient.full_name,
               phone_number: request.patient.phone_number,
@@ -355,7 +366,8 @@ export default function ProfilePage() {
             created_at,
             is_paid,
             request:requests (
-              service_type
+              service_type,
+              price
             )
           `
         )
@@ -387,7 +399,7 @@ export default function ProfilePage() {
           // For quick services, add commission only once per request
           if (isQuickServiceRequest) {
             // Add one commission for the entire request
-            const earnings = -COMMISSION_RATES.quick_service; // Negative because nurse owes us
+            const earnings = COMMISSION_RATES.quick_service; // Positive because nurse owes us
 
             // Add the commission to the first quick service type found
             const firstQuickServiceType = log.request.service_type.find(
@@ -404,39 +416,30 @@ export default function ProfilePage() {
             statistics.serviceTypeStats[firstQuickServiceType].earnings +=
               earnings;
             statistics.totalEarnings += earnings;
-          }
-
-          // Process each service type for hours and non-quick-service earnings
-          log.request.service_type.forEach((serviceType) => {
-            if (!statistics.serviceTypeStats[serviceType]) {
-              statistics.serviceTypeStats[serviceType] = {
-                hours: 0,
-                earnings: 0,
-                count: 0,
-              };
-            }
-
-            // Skip earnings calculation for quick services as we handled it above
-            if (!isQuickService(serviceType)) {
-              let earnings = 0;
-              if (serviceType.includes("psychiatric") && profileData) {
-                // For psychiatric services, we owe the nurse per hour
-                earnings = -(
-                  log.hours * profileData.psychiatric_care_hourly_rate
-                ); // Negative because we owe nurse
-                statistics.serviceTypeStats[serviceType].hours += log.hours;
-                statistics.totalHours += log.hours;
-              } else if (serviceType.includes("private") && profileData) {
-                // For normal private services, we owe the nurse per hour
-                earnings = -(log.hours * profileData.normal_care_hourly_rate); // Negative because we owe nurse
-                statistics.serviceTypeStats[serviceType].hours += log.hours;
-                statistics.totalHours += log.hours;
+          } else {
+            // Process private care services
+            log.request.service_type.forEach((serviceType) => {
+              if (!statistics.serviceTypeStats[serviceType]) {
+                statistics.serviceTypeStats[serviceType] = {
+                  hours: 0,
+                  earnings: 0,
+                  count: 0,
+                };
               }
 
-              statistics.serviceTypeStats[serviceType].earnings += earnings;
-              statistics.totalEarnings += earnings;
-            }
-          });
+              // For private care services, calculate based on request price
+              if (!isQuickService(serviceType) && log.request.price) {
+                const hourlyRate = log.request.price;
+                const nurseShare =
+                  hourlyRate * (1 - COMMISSION_RATES.private_care_percentage); // 90% of price
+                const earnings = -(nurseShare * log.hours); // Negative because we owe nurse
+                statistics.serviceTypeStats[serviceType].hours += log.hours;
+                statistics.totalHours += log.hours;
+                statistics.serviceTypeStats[serviceType].earnings += earnings;
+                statistics.totalEarnings += earnings;
+              }
+            });
+          }
         });
 
       setStats(statistics);
@@ -832,42 +835,21 @@ export default function ProfilePage() {
               title="Amount We Owe for Private Care"
               value={Math.abs(
                 Object.entries(stats.serviceTypeStats)
-                  .filter(
-                    ([type]) =>
-                      type.includes("private") && !type.includes("psychiatric")
-                  )
+                  .filter(([type]) => !isQuickService(type))
                   .reduce((sum, [, data]) => sum + data.earnings, 0)
               ).toFixed(2)}
               prefix={<DollarOutlined />}
               valueStyle={{ color: "#f5222d" }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Rate: ${profile?.normal_care_hourly_rate}/hour (Owed to Nurse)
+              Rate: depends on the request's hourly rate (Owed to Nurse)
             </div>
           </StatisticCard>
         </Col>
         <Col xs={24} md={8}>
           <StatisticCard>
             <Statistic
-              title="Amount We Owe for Psychiatric Care"
-              value={Math.abs(
-                Object.entries(stats.serviceTypeStats)
-                  .filter(([type]) => type.includes("psychiatric"))
-                  .reduce((sum, [, data]) => sum + data.earnings, 0)
-              ).toFixed(2)}
-              prefix={<DollarOutlined />}
-              valueStyle={{ color: "#f5222d" }}
-            />
-            <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Rate: ${profile?.psychiatric_care_hourly_rate}/hour (Owed to
-              Nurse)
-            </div>
-          </StatisticCard>
-        </Col>
-        <Col xs={24} md={8}>
-          <StatisticCard>
-            <Statistic
-              title="Commission Owed by Nurse"
+              title="Quick Service         Commission Owed by Nurse"
               value={Math.abs(
                 Object.entries(stats.serviceTypeStats)
                   .filter(([type]) => isQuickService(type))
@@ -877,15 +859,12 @@ export default function ProfilePage() {
               valueStyle={{ color: "#52c41a" }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Rate: ${COMMISSION_RATES.quick_service} per service (Owed to
+              Rate: ${COMMISSION_RATES.quick_service} per quick service (Owed to
               Company)
             </div>
           </StatisticCard>
         </Col>
-      </Row>
-
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24}>
+        <Col xs={24} md={8}>
           <StatisticCard>
             <Statistic
               title="Total Balance"
@@ -908,7 +887,8 @@ export default function ProfilePage() {
               }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Final amount we owe the nurse (Private care - Commission)
+              Final amount we owe the nurse (Private care earnings - Quick
+              service commission)
             </div>
           </StatisticCard>
         </Col>

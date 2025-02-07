@@ -391,7 +391,7 @@ const LanguageSwitcher = styled(Button)`
 
 const HistoryButton = styled(Button)`
   position: fixed;
-  top: 140px;
+  top: 120px;
   right: 20px;
   z-index: 1000;
   display: flex;

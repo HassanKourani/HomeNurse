@@ -143,14 +143,13 @@ const StyledHeader = styled(Header)`
 
     .header-content {
       height: 100%;
-      padding: 0 12px;
+      padding: 0 16px;
       flex-direction: row;
       justify-content: space-between;
       align-items: center;
     }
 
     .logo-section {
-      width: auto;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -162,35 +161,30 @@ const StyledHeader = styled(Header)`
       h4.ant-typography {
         font-size: 16px;
         margin: 0;
-
-        span {
-          display: block;
-        }
       }
     }
 
     .nav-actions {
       display: flex;
-      flex-direction: row;
       align-items: center;
-      gap: 4px;
+      gap: 8px;
 
       .ant-btn {
-        min-width: 40px;
-        width: 40px;
-        height: 40px;
-        padding: 0;
+        height: 36px;
+        padding: 0 16px;
         display: flex;
         align-items: center;
         justify-content: center;
+        gap: 6px;
 
         .nav-icon {
-          margin: 0;
-          font-size: 18px;
+          font-size: 16px;
         }
 
         .btn-text {
-          display: none;
+          display: inline;
+          font-size: 14px;
+          font-weight: 500;
         }
       }
     }
@@ -198,27 +192,26 @@ const StyledHeader = styled(Header)`
 
   @media (max-width: 480px) {
     .logo-section {
-      gap: 6px;
-
-      .logo {
-        font-size: 18px;
-      }
-
       h4.ant-typography {
-        font-size: 14px;
+        span {
+          font-size: 14px;
+        }
       }
     }
 
     .nav-actions {
-      gap: 2px;
+      gap: 6px;
 
       .ant-btn {
-        min-width: 36px;
-        width: 36px;
-        height: 36px;
+        padding: 0 12px;
+        height: 34px;
 
         .nav-icon {
-          font-size: 16px;
+          font-size: 15px;
+        }
+
+        .btn-text {
+          font-size: 13px;
         }
       }
     }
