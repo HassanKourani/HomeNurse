@@ -5,6 +5,10 @@ import styled from "styled-components";
 import supabase from "../utils/supabase";
 import { useNavigate } from "react-router-dom";
 import { HomeOutlined, EyeOutlined } from "@ant-design/icons";
+import {
+  RequestFilters,
+  FilterValues,
+} from "../components/Filters/RequestFilters";
 import { useAuth } from "../utils/AuthContext";
 import { useNotification } from "../utils/NotificationProvider";
 
@@ -270,88 +274,130 @@ const getServiceTypeColor = (type: string) => {
 export default function MyAssignments() {
   const [requests, setRequests] = useState<DatabaseResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<FilterValues>({
+    patientName: "",
+    contact: "",
+    area: "",
+    status: "",
+  });
   const navigate = useNavigate();
   const { user } = useAuth();
   const notification = useNotification();
 
-  useEffect(() => {
-    const fetchAssignments = async () => {
-      if (!user?.id) return;
+  const fetchRequests = async () => {
+    if (!user?.id) return;
 
-      try {
-        const { data, error } = await supabase
-          .from("request_nurse_assignments")
-          .select(
-            `
-            request:requests (
-              id,
-              service_type,
-              details,
-              status,
-              created_at,
-              patient:profiles!fk_patient (
-                full_name,
-                phone_number,
-                location,
-                area
-              )
-            ),
-            working_hours
+    try {
+      setLoading(true);
+      let query = supabase
+        .from("request_nurse_assignments")
+        .select(
           `
+          working_hours,
+          request:requests (
+            id,
+            service_type,
+            details,
+            status,
+            created_at,
+            patient:profiles!fk_patient (
+              full_name,
+              phone_number,
+              location,
+              area
+            )
           )
-          .eq("nurse_id", user.id)
-          .order("request(created_at)", { ascending: false });
+        `
+        )
+        .eq("nurse_id", user.id)
+        .order("request(created_at)", { ascending: false });
 
-        if (error) throw error;
-
-        if (data) {
-          const validData = (data as unknown as RawAssignmentData[])
-            .filter((item) => {
-              if (!item?.request) return false;
-              const request = item.request;
-              return (
-                request &&
-                typeof request === "object" &&
-                "id" in request &&
-                "service_type" in request &&
-                "details" in request &&
-                "status" in request &&
-                "created_at" in request &&
-                "patient" in request &&
-                request.patient &&
-                typeof request.patient === "object" &&
-                "full_name" in request.patient &&
-                "phone_number" in request.patient &&
-                "location" in request.patient &&
-                "area" in request.patient
-              );
-            })
-            .map((item) => ({
-              id: item.request.id,
-              service_type: item.request.service_type,
-              details: item.request.details,
-              status: item.request.status,
-              created_at: item.request.created_at,
-              patient: item.request.patient,
-              working_hours: item.working_hours || 0,
-            })) as DatabaseResponse[];
-
-          setRequests(validData);
-        }
-      } catch (error) {
-        console.error("Error fetching assignments:", error);
-        notification.error({
-          message: "Error",
-          description: "Failed to fetch assignments",
-          placement: "topRight",
-        });
-      } finally {
-        setLoading(false);
+      // Apply filters
+      if (filters.patientName) {
+        query = query.ilike(
+          "request.patient.full_name",
+          `%${filters.patientName}%`
+        );
       }
-    };
+      if (filters.contact) {
+        query = query.ilike(
+          "request.patient.phone_number",
+          `%${filters.contact}%`
+        );
+      }
+      if (filters.area) {
+        query = query.eq("request.patient.area", filters.area);
+      }
+      if (filters.status) {
+        query = query.eq("request.status", filters.status);
+      }
 
-    fetchAssignments();
-  }, [user?.id, notification]);
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      if (data) {
+        const validData = (data as unknown as RawAssignmentData[])
+          .filter((item) => {
+            if (!item?.request) return false;
+            const request = item.request;
+            return (
+              request &&
+              typeof request === "object" &&
+              "id" in request &&
+              "service_type" in request &&
+              "details" in request &&
+              "status" in request &&
+              "created_at" in request &&
+              "patient" in request &&
+              request.patient &&
+              typeof request.patient === "object" &&
+              "full_name" in request.patient &&
+              "phone_number" in request.patient &&
+              "location" in request.patient &&
+              "area" in request.patient
+            );
+          })
+          .map((item) => ({
+            id: item.request.id,
+            service_type: item.request.service_type,
+            details: item.request.details,
+            status: item.request.status,
+            created_at: item.request.created_at,
+            patient: item.request.patient,
+            working_hours: item.working_hours || 0,
+          })) as DatabaseResponse[];
+
+        setRequests(validData);
+      }
+    } catch (error) {
+      console.error("Error fetching requests:", error);
+      notification.error({
+        message: "Error",
+        description: "Failed to fetch requests",
+        placement: "topRight",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, [filters, user?.id]);
+
+  const handleFilterChange = (values: FilterValues) => {
+    setFilters(values);
+  };
+
+  const handleReset = () => {
+    setFilters({
+      patientName: "",
+      contact: "",
+      area: "",
+      status: "",
+    });
+  };
 
   const columns = [
     {
@@ -508,9 +554,7 @@ export default function MyAssignments() {
       <HeaderSection>
         <div className="title-section">
           <Title level={2}>My Assignments</Title>
-          <Text>
-            View and manage your current and upcoming care assignments
-          </Text>
+          <Text>View and manage your assigned care requests</Text>
         </div>
         <div className="actions-section">
           <ActionButton onClick={() => navigate("/")} icon={<HomeOutlined />}>
@@ -518,6 +562,18 @@ export default function MyAssignments() {
           </ActionButton>
         </div>
       </HeaderSection>
+
+      <RequestFilters
+        onFilterChange={handleFilterChange}
+        onReset={handleReset}
+        initialValues={filters}
+        statusOptions={[
+          { value: "pending", label: "Pending" },
+          { value: "accepted", label: "Accepted" },
+          { value: "completed", label: "Completed" },
+          { value: "cancelled", label: "Cancelled" },
+        ]}
+      />
 
       <StyledTable
         columns={columns}

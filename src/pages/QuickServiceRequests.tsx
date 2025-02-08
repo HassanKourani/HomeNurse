@@ -5,6 +5,10 @@ import styled from "styled-components";
 import supabase from "../utils/supabase";
 import { useNavigate } from "react-router-dom";
 import { HomeOutlined, EyeOutlined } from "@ant-design/icons";
+import {
+  RequestFilters,
+  FilterValues,
+} from "../components/Filters/RequestFilters";
 
 const { Title, Text } = Typography;
 
@@ -249,70 +253,103 @@ const statusColors = {
 export default function QuickServiceRequests() {
   const [requests, setRequests] = useState<DatabaseResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<FilterValues>({
+    patientName: "",
+    contact: "",
+    area: "",
+    status: "",
+  });
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("requests")
-          .select(
-            `
-            id,
-            service_type,
-            details,
-            status,
-            created_at,
-            patient:profiles!fk_patient (
-              full_name,
-              phone_number,
-              location,
-              area
-            )
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from("requests")
+        .select(
           `
+          id,
+          service_type,
+          details,
+          status,
+          created_at,
+          patient:profiles!fk_patient (
+            full_name,
+            phone_number,
+            location,
+            area
           )
-          .overlaps("service_type", [
-            "blood_test",
-            "im",
-            "iv",
-            "patient_care",
-            "hemo_vs",
-            "other",
-          ])
-          .eq("status", "pending")
-          .order("created_at", { ascending: false });
+        `
+        )
+        .overlaps("service_type", [
+          "blood_test",
+          "im",
+          "iv",
+          "patient_care",
+          "hemo_vs",
+          "other",
+        ])
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
 
-        if (error) throw error;
-
-        if (data) {
-          const validData = (data as unknown as RawResponse[]).filter(
-            (item) =>
-              item.id &&
-              Array.isArray(item.service_type) &&
-              item.service_type.length > 0 &&
-              item.details &&
-              item.status &&
-              item.created_at &&
-              item.patient &&
-              typeof item.patient === "object" &&
-              "full_name" in item.patient &&
-              "phone_number" in item.patient &&
-              "location" in item.patient &&
-              "area" in item.patient
-          ) as DatabaseResponse[];
-
-          setRequests(validData);
-        }
-      } catch (error) {
-        console.error("Error fetching requests:", error);
-        message.error("Failed to fetch requests");
-      } finally {
-        setLoading(false);
+      // Apply filters
+      if (filters.patientName) {
+        query = query.ilike("patient.full_name", `%${filters.patientName}%`);
       }
-    };
+      if (filters.contact) {
+        query = query.ilike("patient.phone_number", `%${filters.contact}%`);
+      }
+      if (filters.area) {
+        query = query.eq("patient.area", filters.area);
+      }
 
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      if (data) {
+        const validData = (data as unknown as RawResponse[]).filter(
+          (item) =>
+            item.id &&
+            Array.isArray(item.service_type) &&
+            item.service_type.length > 0 &&
+            item.details &&
+            item.status &&
+            item.created_at &&
+            item.patient &&
+            typeof item.patient === "object" &&
+            "full_name" in item.patient &&
+            "phone_number" in item.patient &&
+            "location" in item.patient &&
+            "area" in item.patient
+        ) as DatabaseResponse[];
+
+        setRequests(validData);
+      }
+    } catch (error) {
+      console.error("Error fetching requests:", error);
+      message.error("Failed to fetch requests");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [filters]);
+
+  const handleFilterChange = (values: FilterValues) => {
+    setFilters(values);
+  };
+
+  const handleReset = () => {
+    setFilters({
+      patientName: "",
+      contact: "",
+      area: "",
+      status: "",
+    });
+  };
 
   const columns = [
     {
@@ -458,10 +495,7 @@ export default function QuickServiceRequests() {
       <HeaderSection>
         <div className="title-section">
           <Title level={2}>Quick Service Requests</Title>
-          <Text>
-            View and manage immediate assistance requests and short-term care
-            assignments
-          </Text>
+          <Text>View and manage quick service requests</Text>
         </div>
         <div className="actions-section">
           <ActionButton onClick={() => navigate("/")} icon={<HomeOutlined />}>
@@ -469,6 +503,13 @@ export default function QuickServiceRequests() {
           </ActionButton>
         </div>
       </HeaderSection>
+
+      <RequestFilters
+        onFilterChange={handleFilterChange}
+        onReset={handleReset}
+        initialValues={filters}
+        showStatus={false}
+      />
 
       <StyledTable
         columns={columns}
