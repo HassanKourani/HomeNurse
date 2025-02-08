@@ -6,8 +6,33 @@ import supabase from "../utils/supabase";
 import { useAuth } from "../utils/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { PlusOutlined, HomeOutlined, EyeOutlined } from "@ant-design/icons";
+import {
+  NurseFilters,
+  NurseFilterValues,
+} from "../components/Filters/NurseFilters";
 
 const { Title, Text } = Typography;
+
+interface WorkingHoursLog {
+  id: number;
+  hours: number;
+  is_paid: boolean;
+  request: {
+    service_type: Array<
+      | "blood_test"
+      | "im"
+      | "iv"
+      | "patient_care"
+      | "hemo_vs"
+      | "other"
+      | "full_time_private_normal"
+      | "part_time_private_normal"
+      | "full_time_private_psychiatric"
+      | "part_time_private_psychiatric"
+    >;
+    price: number;
+  };
+}
 
 type NurseProfile = {
   id: string;
@@ -18,6 +43,10 @@ type NurseProfile = {
   created_at: string;
   is_approved: boolean;
   is_blocked: boolean;
+  amountWeOwe: number;
+  amountTheyOwe: number;
+  netAmount: number;
+  nurse_working_hours_log: WorkingHoursLog[];
 };
 
 const PageContainer = styled(motion.div)`
@@ -68,6 +97,7 @@ const HeaderSection = styled.div`
 const StyledTable = styled(Table<NurseProfile>)`
   .ant-table {
     background: transparent;
+    overflow-x: auto;
   }
 
   .ant-table-wrapper {
@@ -83,6 +113,7 @@ const StyledTable = styled(Table<NurseProfile>)`
     font-weight: 600;
     border-bottom: 2px solid #f0f0f0;
     padding: 16px;
+    white-space: nowrap;
   }
 
   .ant-table-tbody > tr > td {
@@ -219,21 +250,103 @@ const roleLabels = {
 export default function NursesManagement() {
   const [nurses, setNurses] = useState<NurseProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<NurseFilterValues>({
+    name: "",
+    email: "",
+    phone: "",
+    role: "",
+  });
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const fetchNurses = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("profiles")
-        .select("*")
+        .select(
+          `
+          *,
+          nurse_working_hours_log:nurse_working_hours_log (
+            id,
+            hours,
+            is_paid,
+            request:requests (
+              service_type,
+              price
+            )
+          )
+        `
+        )
         .in("role", ["registered", "licensed", "practitioner"])
         .not("id", "eq", user?.id)
         .order("created_at", { ascending: false });
 
+      // Apply filters
+      if (filters.name) {
+        query = query.ilike("full_name", `%${filters.name}%`);
+      }
+      if (filters.email) {
+        query = query.ilike("email", `%${filters.email}%`);
+      }
+      if (filters.phone) {
+        query = query.ilike("phone_number", `%${filters.phone}%`);
+      }
+      if (filters.role) {
+        query = query.eq("role", filters.role);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
 
-      setNurses(data || []);
+      // Process the data to calculate earnings
+      const processedData = (data || []).map(
+        (
+          nurse: Omit<
+            NurseProfile,
+            "amountWeOwe" | "amountTheyOwe" | "netAmount"
+          >
+        ) => {
+          const workingHours = nurse.nurse_working_hours_log || [];
+          let amountWeOwe = 0;
+          let amountTheyOwe = 0;
+
+          workingHours.forEach((log: WorkingHoursLog) => {
+            if (!log.is_paid && log.request) {
+              const isQuickServiceRequest = log.request.service_type.some(
+                (type) =>
+                  [
+                    "blood_test",
+                    "im",
+                    "iv",
+                    "hemo_vs",
+                    "patient_care",
+                    "other",
+                  ].includes(type)
+              );
+
+              if (isQuickServiceRequest) {
+                // Quick service commission owed to company
+                amountTheyOwe += 3.0; // Using the fixed commission rate
+              } else if (log.request.price) {
+                // Private care payment owed to nurse
+                const hourlyRate = log.request.price;
+                const nurseShare = hourlyRate * 0.9; // 90% of price
+                amountWeOwe += nurseShare * log.hours;
+              }
+            }
+          });
+
+          return {
+            ...nurse,
+            amountWeOwe,
+            amountTheyOwe,
+            netAmount: amountWeOwe - amountTheyOwe,
+          };
+        }
+      );
+
+      setNurses(processedData);
     } catch (error) {
       console.error("Error fetching nurses:", error);
       message.error("Failed to fetch nurses");
@@ -275,7 +388,20 @@ export default function NursesManagement() {
     };
 
     checkAccess();
-  }, [user, navigate]);
+  }, [user, navigate, filters]);
+
+  const handleFilterChange = (values: NurseFilterValues) => {
+    setFilters(values);
+  };
+
+  const handleReset = () => {
+    setFilters({
+      name: "",
+      email: "",
+      phone: "",
+      role: "",
+    });
+  };
 
   const handleApproval = async (nurseId: string, approve: boolean) => {
     try {
@@ -330,6 +456,7 @@ export default function NursesManagement() {
       title: "Name",
       dataIndex: "full_name",
       key: "full_name",
+      width: 250,
       render: (text: string) => (
         <strong style={{ color: "#1a3d7c" }}>{text}</strong>
       ),
@@ -338,23 +465,68 @@ export default function NursesManagement() {
       title: "Email",
       dataIndex: "email",
       key: "email",
+      width: 300,
     },
     {
       title: "Phone Number",
       dataIndex: "phone_number",
       key: "phone_number",
+      width: 200,
     },
     {
       title: "Role",
       dataIndex: "role",
       key: "role",
+      width: 220,
       render: (role: keyof typeof roleColors) => (
         <Tag color={roleColors[role]}>{roleLabels[role]}</Tag>
       ),
     },
     {
+      title: "We Owe",
+      dataIndex: "amountWeOwe",
+      key: "amountWeOwe",
+      width: 200,
+      render: (amount: number) => (
+        <Text type={amount === 0 ? undefined : "danger"}>
+          ${amount.toFixed(2)}
+        </Text>
+      ),
+    },
+    {
+      title: "They Owe",
+      dataIndex: "amountTheyOwe",
+      key: "amountTheyOwe",
+      width: 200,
+      render: (amount: number) => (
+        <Text type={amount === 0 ? undefined : "success"}>
+          ${amount.toFixed(2)}
+        </Text>
+      ),
+    },
+    {
+      title: "Net Balance",
+      dataIndex: "netAmount",
+      key: "netAmount",
+      width: 250,
+      render: (amount: number) => (
+        <Text
+          type={amount === 0 ? undefined : amount > 0 ? "danger" : "success"}
+          strong
+        >
+          ${Math.abs(amount).toFixed(2)}
+          {amount !== 0 && (
+            <small style={{ marginLeft: 4 }}>
+              {amount > 0 ? "(We Owe)" : "(They Owe)"}
+            </small>
+          )}
+        </Text>
+      ),
+    },
+    {
       title: "Status",
       key: "status",
+      width: 200,
       render: (_: unknown, record: NurseProfile) => (
         <Space>
           <Tag color={record.is_approved ? "success" : "warning"}>
@@ -421,6 +593,44 @@ export default function NursesManagement() {
         <div className="card-item">
           <span className="label">Phone</span>
           <span className="value">{nurse.phone_number}</span>
+        </div>
+        <div className="card-item">
+          <span className="label">We Owe</span>
+          <span className="value">
+            <Text type={nurse.amountWeOwe === 0 ? undefined : "danger"}>
+              ${nurse.amountWeOwe.toFixed(2)}
+            </Text>
+          </span>
+        </div>
+        <div className="card-item">
+          <span className="label">They Owe</span>
+          <span className="value">
+            <Text type={nurse.amountTheyOwe === 0 ? undefined : "success"}>
+              ${nurse.amountTheyOwe.toFixed(2)}
+            </Text>
+          </span>
+        </div>
+        <div className="card-item">
+          <span className="label">Net Balance</span>
+          <span className="value">
+            <Text
+              type={
+                nurse.netAmount === 0
+                  ? undefined
+                  : nurse.netAmount > 0
+                  ? "danger"
+                  : "success"
+              }
+              strong
+            >
+              ${Math.abs(nurse.netAmount).toFixed(2)}
+              {nurse.netAmount !== 0 && (
+                <small style={{ marginLeft: 4 }}>
+                  {nurse.netAmount > 0 ? "(We Owe)" : "(They Owe)"}
+                </small>
+              )}
+            </Text>
+          </span>
         </div>
         <div className="card-item">
           <span className="label">Status</span>
@@ -497,6 +707,12 @@ export default function NursesManagement() {
         </div>
       </HeaderSection>
 
+      <NurseFilters
+        onFilterChange={handleFilterChange}
+        onReset={handleReset}
+        initialValues={filters}
+      />
+
       <StyledTable
         columns={columns}
         dataSource={nurses}
@@ -507,6 +723,7 @@ export default function NursesManagement() {
           showSizeChanger: false,
           showTotal: (total) => `Total ${total} nurses`,
         }}
+        scroll={{ x: 1820 }}
       />
 
       <MobileCardView>

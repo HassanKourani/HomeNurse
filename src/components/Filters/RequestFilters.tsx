@@ -63,6 +63,11 @@ export function RequestFilters({
 }: RequestFiltersProps) {
   const [form] = Form.useForm();
 
+  const handleReset = () => {
+    form.resetFields();
+    onReset();
+  };
+
   return (
     <>
       <div
@@ -73,13 +78,7 @@ export function RequestFilters({
           marginBottom: "16px",
         }}
       >
-        <Button
-          icon={<ReloadOutlined />}
-          onClick={() => {
-            form.resetFields();
-            onReset();
-          }}
-        >
+        <Button icon={<ReloadOutlined />} onClick={handleReset}>
           Reset
         </Button>
         <Button
@@ -97,6 +96,11 @@ export function RequestFilters({
           layout="vertical"
           onFinish={onFilterChange}
           initialValues={initialValues}
+          onKeyPress={(e) => {
+            if (e.key === "Enter") {
+              form.submit();
+            }
+          }}
         >
           <div
             style={{
@@ -106,10 +110,18 @@ export function RequestFilters({
             }}
           >
             <Form.Item name="patientName" label="Patient Name">
-              <Input placeholder="Search by patient name" allowClear />
+              <Input
+                placeholder="Search by patient name"
+                allowClear
+                onPressEnter={() => form.submit()}
+              />
             </Form.Item>
             <Form.Item name="contact" label="Contact">
-              <Input placeholder="Search by contact" allowClear />
+              <Input
+                placeholder="Search by contact"
+                allowClear
+                onPressEnter={() => form.submit()}
+              />
             </Form.Item>
             <Form.Item name="area" label="Area">
               <Select

@@ -27,6 +27,7 @@ import {
   ArrowLeftOutlined,
   DeleteOutlined,
   EditOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "../utils/AuthContext";
 import supabase from "../utils/supabase";
@@ -1079,9 +1080,24 @@ export default function ProfilePage() {
                 {
                   title: "Actions",
                   key: "actions",
-                  width: 200,
+                  width: 250,
                   render: (_, record) => (
                     <div style={{ display: "flex", gap: "8px" }}>
+                      <Button
+                        type="link"
+                        size="small"
+                        onClick={() =>
+                          navigate(`/request/${record.request_id}`)
+                        }
+                        icon={<EyeOutlined />}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        View Request
+                      </Button>
                       {isSuperAdmin && !record.is_paid && (
                         <Button
                           type="primary"
