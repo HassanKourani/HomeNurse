@@ -791,6 +791,27 @@ export default function RequestDetails() {
     }
 
     try {
+      // First, delete all working hours logs using the RPC function
+      const { data: deleteResult, error: deleteHoursError } =
+        await supabase.rpc("delete_nurse_request_hours", {
+          rid: parseInt(id),
+          nid: nurseId,
+        });
+
+      if (deleteHoursError || !deleteResult?.success) {
+        console.error(
+          "Error deleting working hours:",
+          deleteHoursError || deleteResult?.error
+        );
+        notificationApi.error({
+          message: "Error",
+          description: "Failed to delete nurse's working hours",
+          placement: "topRight",
+        });
+        return;
+      }
+
+      // Then remove the nurse from the request
       const { error } = await supabase.rpc("remove_nurse_from_request", {
         rid: parseInt(id),
         nid: nurseId,
@@ -821,14 +842,14 @@ export default function RequestDetails() {
       );
       notificationApi.success({
         message: "Success",
-        description: "Nurse removed successfully",
+        description: `Nurse and their working hours (${deleteResult.deleted_count} records) removed successfully`,
         placement: "topRight",
       });
     } catch (error) {
-      console.error("Error removing nurse:", error);
+      console.error("Error in nurse removal process:", error);
       notificationApi.error({
         message: "Error",
-        description: "Failed to remove nurse",
+        description: "Failed to complete nurse removal process",
         placement: "topRight",
       });
     }
@@ -934,8 +955,15 @@ export default function RequestDetails() {
   const canCancelRequest =
     request?.status === "accepted" && userRole === "superAdmin";
 
+  const isNurseAssigned =
+    userRole !== "patient" &&
+    request?.assigned_nurses.some((nurse) => nurse.id === user?.id);
+
   const canCompleteRequest =
-    userRole === "superAdmin" && request?.status === "accepted";
+    (userRole === "superAdmin" ||
+      (isNurseAssigned &&
+        request?.service_type.some((service) => isQuickService(service)))) &&
+    request?.status === "accepted";
 
   const canRequestAssignment =
     userRole &&

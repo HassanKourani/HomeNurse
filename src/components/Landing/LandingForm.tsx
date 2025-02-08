@@ -1105,6 +1105,7 @@ export default function LandingForm() {
           width={600}
         >
           <List
+            style={{ maxHeight: 400, overflow: "auto" }}
             dataSource={pastRequests}
             renderItem={(item) => (
               <List.Item
