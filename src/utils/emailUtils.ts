@@ -10,39 +10,39 @@ type EmailData = {
   imageUrl?: string;
 };
 
-// Quick service types
-const QUICK_SERVICES = [
-  "blood_test",
-  "im",
-  "iv",
-  "patient_care",
-  "hemo_vs",
-  "other",
-];
-
 // Initialize EmailJS with your public key
 emailjs.init("4N70KK1SQmyzd406d");
 
 export const sendNotificationToNurses = async (emailData: EmailData) => {
   try {
-    // Get super admin emails
+    // Get all super admins regardless of area
     const { data: superAdmins } = await supabase
       .from("profiles")
       .select("email")
       .eq("role", "superAdmin");
 
-    // For quick services, also get nurses in the same area
+    // Get area-specific nurses (non-patients)
     let areaSpecificNurses: { email: string }[] = [];
-    if (emailData.serviceType.some((type) => QUICK_SERVICES.includes(type))) {
-      const { data: nurses } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("area", emailData.patientArea)
-        .in("role", ["registered", "licensed", "practitioner"]);
+    let query = supabase
+      .from("profiles")
+      .select("email")
+      .neq("role", "patient")
+      .eq("is_approved", true)
+      .eq("is_blocked", false);
 
-      if (nurses) {
-        areaSpecificNurses = nurses;
-      }
+    // If area is Beirut, include near_beirut nurses, and vice versa
+    if (emailData.patientArea === "beirut") {
+      query = query.or(`area.eq.beirut,area.eq.near_beirut`);
+    } else if (emailData.patientArea === "near_beirut") {
+      query = query.or(`area.eq.near_beirut,area.eq.beirut`);
+    } else {
+      query = query.eq("area", emailData.patientArea);
+    }
+
+    const { data: nurses } = await query;
+
+    if (nurses) {
+      areaSpecificNurses = nurses;
     }
 
     // Combine and deduplicate emails

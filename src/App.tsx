@@ -171,20 +171,20 @@ const StyledHeader = styled(Header)`
 
       .ant-btn {
         height: 36px;
-        padding: 0 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
+        padding: 0 12px;
 
         .nav-icon {
           font-size: 16px;
         }
 
         .btn-text {
-          display: inline;
           font-size: 14px;
           font-weight: 500;
+        }
+
+        .manage-nurses-text,
+        .add-nurse-text {
+          display: none !important;
         }
       }
     }
@@ -432,7 +432,7 @@ function AuthenticatedApp() {
   const serviceCards = [
     {
       emoji: "🏥",
-      title: "Regular Care Requests",
+      title: "Private Care Requests",
       description:
         "View and manage regular care requests including full-time and part-time nursing care assignments.",
       stats: [
@@ -503,9 +503,9 @@ function AuthenticatedApp() {
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <span className="logo">👨‍⚕️</span>
+            {/* <span className="logo">👨‍⚕️</span> */}
             <Title level={4}>
-              <span>Medical Care</span>
+              <span>NurseGo</span>
             </Title>
           </motion.div>
           <motion.div
@@ -521,14 +521,16 @@ function AuthenticatedApp() {
                   onClick={() => navigate("/nurses")}
                   icon={<TeamOutlined className="nav-icon" />}
                 >
-                  <span className="btn-text">Manage Nurses</span>
+                  <span className="btn-text manage-nurses-text">
+                    Manage Nurses
+                  </span>
                 </Button>
                 <Button
                   type="text"
                   onClick={() => navigate("/signup")}
                   icon={<UserAddOutlined className="nav-icon" />}
                 >
-                  <span className="btn-text">Add Nurse</span>
+                  <span className="btn-text add-nurse-text">Add Nurse</span>
                 </Button>
               </>
             )}
@@ -595,9 +597,9 @@ function UnauthenticatedApp() {
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <span className="logo">👨‍⚕️</span>
+            {/* <span className="logo">👨‍⚕️</span> */}
             <Title level={4}>
-              <span>Medical Care Home Services</span>
+              <span>NurseGo</span>
             </Title>
           </motion.div>
           <motion.div
@@ -649,7 +651,7 @@ function UnauthenticatedApp() {
                 <BannerSection>
                   <MainTitle>
                     Welcome Back to
-                    <span>Medical Care</span>
+                    <span>NurseGo</span>
                   </MainTitle>
                   <Subtitle>
                     Access your dashboard to manage patient requests and provide
