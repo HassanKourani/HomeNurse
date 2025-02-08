@@ -53,6 +53,7 @@ type RequestDetails = {
     | "part_time_private_normal"
     | "full_time_private_psychiatric"
     | "part_time_private_psychiatric"
+    | "physiotherapy"
   >;
   details: string;
   status: "pending" | "accepted" | "completed" | "cancelled";
@@ -272,6 +273,7 @@ const serviceTypeLabels = {
   part_time_private_normal: "Part Time Regular Care",
   full_time_private_psychiatric: "Full Time Psychiatric Care",
   part_time_private_psychiatric: "Part Time Psychiatric Care",
+  physiotherapy: "Physiotherapy",
 };
 
 const areaLabels: Record<Area, string> = {
@@ -293,6 +295,7 @@ const statusColors = {
 const getServiceTypeColor = (type: string) => {
   if (type.includes("psychiatric")) return "purple";
   if (type.includes("private_normal")) return "blue";
+  if (type === "physiotherapy") return "green";
   return "cyan";
 };
 
@@ -327,16 +330,56 @@ const PriceEditSection = styled.div`
   }
 `;
 
-const isQuickService = (serviceType: string) => {
+const isQuickService = (type: string) => {
   const quickServices = [
     "blood_test",
     "im",
     "iv",
-    "hemo_vs",
     "patient_care",
+    "hemo_vs",
     "other",
   ];
-  return quickServices.includes(serviceType);
+  return quickServices.includes(type);
+};
+
+const isPhysiotherapyService = (type: string) => {
+  return type === "physiotherapy";
+};
+
+const isPrivateOrPsychiatricService = (type: string) => {
+  const privateServices = [
+    "full_time_private_normal",
+    "full_time_private_psychiatric",
+    "part_time_private_normal",
+    "part_time_private_psychiatric",
+  ];
+  return privateServices.includes(type);
+};
+
+const canViewRequest = (
+  userRole: string | null,
+  request: RequestDetails | null
+) => {
+  if (!userRole || !request) return false;
+
+  const requestType = request.service_type[0];
+  const isPhysio = isPhysiotherapyService(requestType);
+  const isQuick = isQuickService(requestType);
+  const isPrivateOrPsych = isPrivateOrPsychiatricService(requestType);
+
+  // Super admin can view all requests
+  if (userRole === "superAdmin") return true;
+
+  // If user is a physiotherapist, they can only view physiotherapy requests
+  if (userRole === "physiotherapist") return isPhysio;
+
+  // Regular nurses can view quick services and private/psychiatric care, but not physiotherapy
+  if (userRole === "registered") return isQuick || isPrivateOrPsych;
+
+  // Patients can view their own requests
+  if (userRole === "patient") return true;
+
+  return false;
 };
 
 const logOneHourForNurse = async (nurseId: string, requestId: number) => {
@@ -490,7 +533,7 @@ export default function RequestDetails() {
 
   useEffect(() => {
     const fetchRequestDetails = async () => {
-      if (!id) return;
+      if (!id || !userRole) return; // Wait for both id and userRole to be available
 
       try {
         // First fetch the request details
@@ -506,7 +549,15 @@ export default function RequestDetails() {
             price,
             visit_date,
             image_id,
-            patient:profiles!fk_patient (
+            assigned_nurses:request_nurse_assignments(
+              nurse:profiles(
+                id,
+                full_name,
+                phone_number
+              ),
+              working_hours
+            ),
+            patient:profiles!fk_patient(
               full_name,
               phone_number,
               location,
@@ -558,6 +609,16 @@ export default function RequestDetails() {
           patient: requestData.patient as unknown as PatientType,
         } as RequestDetails;
 
+        // Check if the user has permission to view this request
+        if (!canViewRequest(userRole, transformedRequest)) {
+          navigate("/");
+          notificationApi.error({
+            message: "Access Denied",
+            description: "You don't have permission to view this request.",
+          });
+          return; // Exit early if no permission
+        }
+
         setRequest(transformedRequest);
         setNewPrice(requestData.price?.toString() || "");
         setNewVisitDate(requestData.visit_date || null);
@@ -582,7 +643,7 @@ export default function RequestDetails() {
     };
 
     fetchRequestDetails();
-  }, [id, navigate, notificationApi]);
+  }, [id, userRole, navigate, notificationApi]); // Added userRole to dependencies
 
   useEffect(() => {
     const fetchAvailableNurses = async () => {
@@ -590,7 +651,13 @@ export default function RequestDetails() {
         const { data, error } = await supabase
           .from("profiles")
           .select("id, full_name, phone_number, role")
-          .in("role", ["registered", "licensed", "practitioner"])
+          .in("role", [
+            "registered",
+            "licensed",
+            "practitioner",
+            "nurse",
+            "physiotherapist",
+          ])
           .is("is_approved", true)
           .is("is_blocked", false)
           .order("full_name");

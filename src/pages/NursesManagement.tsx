@@ -39,7 +39,12 @@ type NurseProfile = {
   full_name: string;
   email: string;
   phone_number: string;
-  role: "registered" | "licensed" | "practitioner";
+  role:
+    | "registered"
+    | "licensed"
+    | "practitioner"
+    | "nurse"
+    | "physiotherapist";
   created_at: string;
   is_approved: boolean;
   is_blocked: boolean;
@@ -239,12 +244,16 @@ const roleColors = {
   registered: "blue",
   licensed: "green",
   practitioner: "purple",
+  nurse: "orange",
+  physiotherapist: "red",
 };
 
 const roleLabels = {
   registered: "Registered Nurse (RN)",
   licensed: "Licensed Practical Nurse (LPN)",
   practitioner: "Nurse Practitioner (NP)",
+  nurse: "Nurse",
+  physiotherapist: "Physiotherapist",
 };
 
 export default function NursesManagement() {
@@ -277,7 +286,13 @@ export default function NursesManagement() {
           )
         `
         )
-        .in("role", ["registered", "licensed", "practitioner"])
+        .in("role", [
+          "registered",
+          "licensed",
+          "practitioner",
+          "nurse",
+          "physiotherapist",
+        ])
         .not("id", "eq", user?.id)
         .order("created_at", { ascending: false });
 

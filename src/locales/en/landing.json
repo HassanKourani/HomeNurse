@@ -83,8 +83,10 @@
         "iv": "Intravenous (IV)",
         "patient_care": "Care for patients",
         "hemo_vs": "Hemo+ v/s",
+        "physiotherapy": "Physiotherapy",
         "other": "Other",
         "privateGroup": "Private Care Services",
+        "physiotherapyGroup": "Physiotherapy Services",
         "quickGroup": "Quick Services"
       }
     },

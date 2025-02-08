@@ -43,6 +43,7 @@ type ServiceType =
   | "iv"
   | "patient_care"
   | "hemo_vs"
+  | "physiotherapy"
   | "other";
 
 export type Area =
@@ -80,16 +81,18 @@ const PRIVATE_CARE_SERVICES = [
   "part_time_private_psychiatric",
 ] as const;
 
+const PHYSIOTHERAPY_SERVICES = ["physiotherapy"] as const;
+
 const QUICK_SERVICES = [
   "blood_test",
   "im",
   "iv",
   "patient_care",
-  "hemo_vs",
   "other",
 ] as const;
 
 type PrivateCareService = (typeof PRIVATE_CARE_SERVICES)[number];
+type PhysiotherapyService = (typeof PHYSIOTHERAPY_SERVICES)[number];
 type QuickService = (typeof QUICK_SERVICES)[number];
 
 const ENABLED_AREAS = ["beirut", "near_beirut"];
@@ -829,16 +832,19 @@ export default function LandingForm() {
                 return;
               }
 
-              // Check if the last selected item is a private care service
+              // Check if the last selected item is a private care service or physiotherapy
               const isLastPrivate = PRIVATE_CARE_SERVICES.includes(
                 lastSelected as PrivateCareService
               );
+              const isLastPhysiotherapy = PHYSIOTHERAPY_SERVICES.includes(
+                lastSelected as PhysiotherapyService
+              );
 
-              if (isLastPrivate) {
-                // If selecting a private care service, only allow that one
+              if (isLastPrivate || isLastPhysiotherapy) {
+                // If selecting a private care or physiotherapy service, only allow that one
                 form.setFieldValue("service_type", [lastSelected]);
               } else {
-                // For quick services, allow multiple but filter out any private care services
+                // For quick services, allow multiple but filter out any private care or physiotherapy services
                 const filteredValues = selectedValues.filter((v) =>
                   QUICK_SERVICES.includes(v as QuickService)
                 );
@@ -859,7 +865,44 @@ export default function LandingForm() {
                 const hasPrivate = currentValues?.some((v) =>
                   PRIVATE_CARE_SERVICES.includes(v as PrivateCareService)
                 );
-                const isDisabled = hasPrivate && value !== currentValues?.[0];
+                const hasPhysiotherapy = currentValues?.some((v) =>
+                  PHYSIOTHERAPY_SERVICES.includes(v as PhysiotherapyService)
+                );
+                const isDisabled =
+                  (hasPrivate && value !== currentValues?.[0]) ||
+                  hasPhysiotherapy;
+
+                return (
+                  <Select.Option
+                    key={value}
+                    value={value}
+                    disabled={isDisabled}
+                  >
+                    {t(`form.fields.serviceTypes.${value}`)}
+                  </Select.Option>
+                );
+              })}
+            </Select.OptGroup>
+
+            <Select.OptGroup
+              label={t(
+                "form.fields.serviceTypes.physiotherapyGroup",
+                "Physiotherapy Services"
+              )}
+            >
+              {PHYSIOTHERAPY_SERVICES.map((value) => {
+                const currentValues = form.getFieldValue(
+                  "service_type"
+                ) as ServiceType[];
+                const hasPrivate = currentValues?.some((v) =>
+                  PRIVATE_CARE_SERVICES.includes(v as PrivateCareService)
+                );
+                const hasPhysiotherapy = currentValues?.some((v) =>
+                  PHYSIOTHERAPY_SERVICES.includes(v as PhysiotherapyService)
+                );
+                const isDisabled =
+                  hasPrivate ||
+                  (hasPhysiotherapy && value !== currentValues?.[0]);
 
                 return (
                   <Select.Option
@@ -883,7 +926,10 @@ export default function LandingForm() {
                 const hasPrivate = currentValues?.some((v) =>
                   PRIVATE_CARE_SERVICES.includes(v as PrivateCareService)
                 );
-                const isDisabled = hasPrivate;
+                const hasPhysiotherapy = currentValues?.some((v) =>
+                  PHYSIOTHERAPY_SERVICES.includes(v as PhysiotherapyService)
+                );
+                const isDisabled = hasPrivate || hasPhysiotherapy;
 
                 return (
                   <Select.Option

@@ -13,6 +13,20 @@ type EmailData = {
 // Initialize EmailJS with your public key
 emailjs.init("4N70KK1SQmyzd406d");
 
+// Helper functions to identify service types
+const isPhysiotherapyService = (type: string) => type === "physiotherapy";
+
+const isPrivateService = (type: string) =>
+  [
+    "full_time_private_normal",
+    "full_time_private_psychiatric",
+    "part_time_private_normal",
+    "part_time_private_psychiatric",
+  ].includes(type);
+
+const isQuickService = (type: string) =>
+  ["blood_test", "im", "iv", "patient_care", "hemo_vs", "other"].includes(type);
+
 export const sendNotificationToNurses = async (emailData: EmailData) => {
   try {
     // Get all super admins regardless of area
@@ -21,16 +35,31 @@ export const sendNotificationToNurses = async (emailData: EmailData) => {
       .select("email")
       .eq("role", "superAdmin");
 
-    // Get area-specific nurses (non-patients)
-    let areaSpecificNurses: { email: string }[] = [];
+    // Initialize array for area-specific healthcare providers
+    let areaSpecificProviders: { email: string }[] = [];
+
+    // Determine service type from the first service (main service)
+    const mainServiceType = emailData.serviceType[0];
+
+    // Build query based on service type
     let query = supabase
       .from("profiles")
       .select("email")
-      .neq("role", "patient")
       .eq("is_approved", true)
       .eq("is_blocked", false);
 
-    // If area is Beirut, include near_beirut nurses, and vice versa
+    if (isPhysiotherapyService(mainServiceType)) {
+      // For physiotherapy services, only notify physiotherapists
+      query = query.eq("role", "physiotherapist");
+    } else if (
+      isQuickService(mainServiceType) ||
+      isPrivateService(mainServiceType)
+    ) {
+      // For private and quick services, notify nurses
+      query = query.eq("role", "registered");
+    }
+
+    // Apply area filter
     if (emailData.patientArea === "beirut") {
       query = query.or(`area.eq.beirut,area.eq.near_beirut`);
     } else if (emailData.patientArea === "near_beirut") {
@@ -39,16 +68,16 @@ export const sendNotificationToNurses = async (emailData: EmailData) => {
       query = query.eq("area", emailData.patientArea);
     }
 
-    const { data: nurses } = await query;
+    const { data: providers } = await query;
 
-    if (nurses) {
-      areaSpecificNurses = nurses;
+    if (providers) {
+      areaSpecificProviders = providers;
     }
 
     // Combine and deduplicate emails
     const allEmails = [
       ...(superAdmins?.map((admin) => admin.email) || []),
-      ...(areaSpecificNurses.map((nurse) => nurse.email) || []),
+      ...(areaSpecificProviders.map((provider) => provider.email) || []),
     ];
     const uniqueEmails = [...new Set(allEmails)];
 

@@ -305,11 +305,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 <Select.Option value="registered">
                   Registered Nurse (RN)
                 </Select.Option>
-                <Select.Option value="licensed">
-                  Licensed Practical Nurse (LPN)
-                </Select.Option>
-                <Select.Option value="practitioner">
-                  Nurse Practitioner (NP)
+                <Select.Option value="physiotherapist">
+                  Physiotherapist
                 </Select.Option>
               </Select>
             </Form.Item>

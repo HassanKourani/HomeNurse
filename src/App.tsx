@@ -31,6 +31,7 @@ import {
 import { NotificationProvider } from "./utils/NotificationProvider";
 import ProfilePage from "./pages/ProfilePage";
 import WaitingApprovalPage from "./pages/WaitingApprovalPage";
+import PhysiotherapyRequests from "./pages/PhysiotherapyRequests";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -413,6 +414,7 @@ const ServiceCard = styled(motion.div)`
 function AuthenticatedApp() {
   const { user, signOut } = useAuth();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -424,12 +426,13 @@ function AuthenticatedApp() {
         .single();
 
       setIsSuperAdmin(profile?.role === "superAdmin");
+      setUserRole(profile?.role);
     };
 
     checkRole();
   }, [user]);
 
-  const serviceCards = [
+  const allServiceCards = [
     {
       emoji: "🏥",
       title: "Private Care Requests",
@@ -441,6 +444,7 @@ function AuthenticatedApp() {
         { value: "3", label: "Urgent" },
       ],
       onClick: () => navigate("/regular-care-requests"),
+      roles: ["superAdmin", "registered", "nurse"],
     },
     {
       emoji: "🧠",
@@ -453,6 +457,7 @@ function AuthenticatedApp() {
         { value: "2", label: "Priority" },
       ],
       onClick: () => navigate("/psychiatric-requests"),
+      roles: ["superAdmin", "registered", "nurse"],
     },
     {
       emoji: "⚡",
@@ -464,6 +469,19 @@ function AuthenticatedApp() {
         { value: "2", label: "Active" },
       ],
       onClick: () => navigate("/quick-requests"),
+      roles: ["superAdmin", "registered", "nurse"],
+    },
+    {
+      emoji: "🦿",
+      title: "Physiotherapy Requests",
+      description:
+        "View and manage physiotherapy service requests and rehabilitation care assignments.",
+      stats: [
+        { value: "4", label: "New Requests" },
+        { value: "2", label: "Pending" },
+      ],
+      onClick: () => navigate("/physiotherapy-requests"),
+      roles: ["superAdmin", "physiotherapist"],
     },
     {
       emoji: "📋",
@@ -475,6 +493,7 @@ function AuthenticatedApp() {
         { value: "2", label: "Upcoming" },
       ],
       onClick: () => navigate("/my-assignments"),
+      roles: ["superAdmin", "registered", "nurse", "physiotherapist"],
     },
     {
       emoji: "👤",
@@ -486,8 +505,13 @@ function AuthenticatedApp() {
         { value: "4.9", label: "Rating" },
       ],
       onClick: () => navigate(`/profile/${user?.id}`),
+      roles: ["superAdmin", "registered", "nurse", "physiotherapist"],
     },
   ];
+
+  const visibleServiceCards = allServiceCards.filter((card) =>
+    card.roles.includes(userRole || "")
+  );
 
   return (
     <StyledLayout>
@@ -552,7 +576,7 @@ function AuthenticatedApp() {
         }}
       >
         <DashboardGrid>
-          {serviceCards.map((card, index) => (
+          {visibleServiceCards.map((card, index) => (
             <ServiceCard
               key={card.title}
               onClick={card.onClick}
@@ -718,6 +742,10 @@ function AppWithProvider() {
             <Route path="/request/:id" element={<RequestDetails />} />
             <Route path="/profile/:nurseId" element={<ProfilePage />} />
             <Route path="/waiting-approval" element={<WaitingApprovalPage />} />
+            <Route
+              path="/physiotherapy-requests"
+              element={<PhysiotherapyRequests />}
+            />
             <Route path="/*" element={<App />} />
           </Routes>
         </BrowserRouter>

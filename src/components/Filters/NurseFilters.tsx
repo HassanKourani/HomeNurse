@@ -34,8 +34,7 @@ interface NurseFiltersProps {
 const roleOptions = [
   { value: "", label: "Select role", disabled: true },
   { value: "registered", label: "Registered Nurse (RN)" },
-  { value: "licensed", label: "Licensed Practical Nurse (LPN)" },
-  { value: "practitioner", label: "Nurse Practitioner (NP)" },
+  { value: "physiotherapist", label: "Physiotherapist" },
 ];
 
 export function NurseFilters({
