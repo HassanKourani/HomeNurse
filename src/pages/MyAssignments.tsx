@@ -252,6 +252,7 @@ const serviceTypeLabels = {
   patient_care: "Patient Care",
   hemo_vs: "Hemodynamic/Vital Signs",
   other: "Other Services",
+  physiotherapy: "Physiotherapy",
   full_time_private_normal: "Full Time Regular Care",
   part_time_private_normal: "Part Time Regular Care",
   full_time_private_psychiatric: "Full Time Psychiatric Care",

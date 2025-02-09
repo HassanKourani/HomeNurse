@@ -360,7 +360,9 @@ const canViewRequest = (
   userRole: string | null,
   request: RequestDetails | null
 ) => {
-  if (!userRole || !request) return false;
+  if (!userRole || !request) {
+    return false;
+  }
 
   const requestType = request.service_type[0];
   const isPhysio = isPhysiotherapyService(requestType);
@@ -368,16 +370,25 @@ const canViewRequest = (
   const isPrivateOrPsych = isPrivateOrPsychiatricService(requestType);
 
   // Super admin can view all requests
-  if (userRole === "superAdmin") return true;
+  if (userRole === "superAdmin") {
+    return true;
+  }
 
   // If user is a physiotherapist, they can only view physiotherapy requests
-  if (userRole === "physiotherapist") return isPhysio;
+  if (userRole === "physiotherapist") {
+    return isPhysio;
+  }
 
   // Regular nurses can view quick services and private/psychiatric care, but not physiotherapy
-  if (userRole === "registered") return isQuick || isPrivateOrPsych;
+  if (userRole === "registered") {
+    const hasAccess = isQuick || isPrivateOrPsych;
+    return hasAccess;
+  }
 
   // Patients can view their own requests
-  if (userRole === "patient") return true;
+  if (userRole === "patient") {
+    return true;
+  }
 
   return false;
 };
@@ -516,24 +527,11 @@ export default function RequestDetails() {
   });
 
   useEffect(() => {
-    const fetchUserRole = async () => {
-      if (user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-
-        setUserRole(profile?.role || null);
-      }
-    };
-
-    fetchUserRole();
-  }, [user]);
-
-  useEffect(() => {
     const fetchRequestDetails = async () => {
-      if (!id || !userRole) return; // Wait for both id and userRole to be available
+      if (!id) {
+        setLoading(false);
+        return;
+      }
 
       try {
         // First fetch the request details
@@ -568,7 +566,21 @@ export default function RequestDetails() {
           .eq("id", parseInt(id))
           .single();
 
-        if (requestError) throw requestError;
+        if (requestError) {
+          setLoading(false);
+          throw requestError;
+        }
+
+        if (!requestData) {
+          setLoading(false);
+          navigate("/");
+          notificationApi.error({
+            message: "Error",
+            description: "Request not found",
+            placement: "topRight",
+          });
+          return;
+        }
 
         // Then fetch all assigned nurses
         const { data: nurseAssignments, error: nurseError } = await supabase
@@ -585,7 +597,11 @@ export default function RequestDetails() {
           )
           .eq("request_id", parseInt(id));
 
-        if (nurseError) throw nurseError;
+        if (nurseError) {
+          console.error("Error fetching nurse assignments:", nurseError);
+          setLoading(false);
+          throw nurseError;
+        }
 
         interface PatientType {
           full_name: string;
@@ -610,15 +626,21 @@ export default function RequestDetails() {
         } as RequestDetails;
 
         // Check if the user has permission to view this request
-        if (!canViewRequest(userRole, transformedRequest)) {
+        if (
+          user?.id &&
+          userRole &&
+          !canViewRequest(userRole, transformedRequest)
+        ) {
+          setLoading(false);
           navigate("/");
           notificationApi.error({
             message: "Access Denied",
             description: "You don't have permission to view this request.",
           });
-          return; // Exit early if no permission
+          return;
         }
 
+        // Set the request data
         setRequest(transformedRequest);
         setNewPrice(requestData.price?.toString() || "");
         setNewVisitDate(requestData.visit_date || null);
@@ -626,7 +648,8 @@ export default function RequestDetails() {
         console.error("Error in request details:", error);
         notificationApi.error({
           message: "Error",
-          description: "An unexpected error occurred",
+          description:
+            "An unexpected error occurred while fetching request details",
           placement: "topRight",
         });
         if (
@@ -643,7 +666,35 @@ export default function RequestDetails() {
     };
 
     fetchRequestDetails();
-  }, [id, userRole, navigate, notificationApi]); // Added userRole to dependencies
+  }, [id, navigate, notificationApi]);
+
+  // Fetch user role if user is authenticated
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        if (user?.id) {
+          const { data: profile, error } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single();
+
+          if (error) {
+            console.error("Error fetching user role:", error);
+            return;
+          }
+
+          if (profile?.role) {
+            setUserRole(profile.role);
+          }
+        }
+      } catch (error) {
+        console.error("Error in fetchUserRole:", error);
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
 
   useEffect(() => {
     const fetchAvailableNurses = async () => {
@@ -1512,7 +1563,6 @@ export default function RequestDetails() {
             </Descriptions.Item>
             <Descriptions.Item label="Contact">
               {userRole === "superAdmin" ||
-              isQuickService(request.service_type[0]) ||
               request.assigned_nurses.some((nurse) => nurse.id === user?.id)
                 ? request.patient.phone_number
                 : "Contact hidden - Only visible to assigned nurses"}
