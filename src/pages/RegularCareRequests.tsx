@@ -309,7 +309,6 @@ export default function RegularCareRequests() {
             item.id &&
             Array.isArray(item.service_type) &&
             item.service_type.length > 0 &&
-            item.details &&
             item.status &&
             item.created_at &&
             item.patient &&
@@ -356,12 +355,6 @@ export default function RegularCareRequests() {
         <strong style={{ color: "#1a3d7c" }}>{text}</strong>
       ),
       width: 200,
-    },
-    {
-      title: "Contact",
-      dataIndex: ["patient", "phone_number"],
-      key: "phone_number",
-      width: 150,
     },
     {
       title: "Location",
@@ -449,10 +442,6 @@ export default function RegularCareRequests() {
               </Tag>
             ))}
           </div>
-        </div>
-        <div className="card-item">
-          <span className="label">Contact</span>
-          <span className="value">{request.patient.phone_number}</span>
         </div>
         <div className="card-item">
           <span className="label">Location</span>
