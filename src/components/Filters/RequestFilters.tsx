@@ -116,13 +116,6 @@ export function RequestFilters({
                 onPressEnter={() => form.submit()}
               />
             </Form.Item>
-            <Form.Item name="contact" label="Contact">
-              <Input
-                placeholder="Search by contact"
-                allowClear
-                onPressEnter={() => form.submit()}
-              />
-            </Form.Item>
             <Form.Item name="area" label="Area">
               <Select
                 placeholder="Select service area"

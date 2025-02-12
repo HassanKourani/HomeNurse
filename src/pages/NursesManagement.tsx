@@ -1,5 +1,16 @@
 import { useEffect, useState } from "react";
-import { Table, Typography, Tag, Button, message, Space, Card } from "antd";
+import {
+  Table,
+  Typography,
+  Tag,
+  Button,
+  message,
+  Space,
+  Card,
+  Select,
+  Row,
+  Col,
+} from "antd";
 import { motion } from "framer-motion";
 import styled from "styled-components";
 import supabase from "../utils/supabase";
@@ -39,12 +50,7 @@ type NurseProfile = {
   full_name: string;
   email: string;
   phone_number: string;
-  role:
-    | "registered"
-    | "licensed"
-    | "practitioner"
-    | "nurse"
-    | "physiotherapist";
+  role: "registered" | "physiotherapist" | "superAdmin";
   created_at: string;
   is_approved: boolean;
   is_blocked: boolean;
@@ -242,18 +248,14 @@ const ActionButton = styled(Button)`
 
 const roleColors = {
   registered: "blue",
-  licensed: "green",
-  practitioner: "purple",
-  nurse: "orange",
   physiotherapist: "red",
+  superAdmin: "gold",
 };
 
 const roleLabels = {
   registered: "Registered Nurse (RN)",
-  licensed: "Licensed Practical Nurse (LPN)",
-  practitioner: "Nurse Practitioner (NP)",
-  nurse: "Nurse",
   physiotherapist: "Physiotherapist",
+  superAdmin: "Super Admin",
 };
 
 export default function NursesManagement() {
@@ -286,14 +288,9 @@ export default function NursesManagement() {
           )
         `
         )
-        .in("role", [
-          "registered",
-          "licensed",
-          "practitioner",
-          "nurse",
-          "physiotherapist",
-        ])
+        .in("role", ["registered", "physiotherapist", "superAdmin"])
         .not("id", "eq", user?.id)
+        .not("email", "eq", "hkourani36@gmail.com")
         .order("created_at", { ascending: false });
 
       // Apply filters
@@ -466,6 +463,25 @@ export default function NursesManagement() {
     }
   };
 
+  const handleRoleUpdate = async (nurseId: string, newRole: string) => {
+    try {
+      const { error } = await supabase.rpc("update_nurse_role", {
+        updated_role: newRole,
+        nurse_id_param: nurseId,
+      });
+
+      if (error) throw error;
+
+      message.success("Role updated successfully");
+      fetchNurses(); // Refresh the nurses list
+    } catch (error) {
+      console.error("Error updating nurse role:", error);
+      message.error(
+        error instanceof Error ? error.message : "Failed to update role"
+      );
+    }
+  };
+
   const columns = [
     {
       title: "Name",
@@ -492,9 +508,28 @@ export default function NursesManagement() {
       title: "Role",
       dataIndex: "role",
       key: "role",
-      width: 220,
-      render: (role: keyof typeof roleColors) => (
-        <Tag color={roleColors[role]}>{roleLabels[role]}</Tag>
+      width: 500,
+      render: (role: keyof typeof roleColors, record: NurseProfile) => (
+        <Row justify="space-between">
+          <Col span={8}>
+            <Tag color={roleColors[role]}>{roleLabels[role]}</Tag>
+          </Col>
+
+          <Col span={16} style={{ textAlign: "right" }}>
+            <Select
+              defaultValue={role}
+              style={{ width: 120 }}
+              onChange={(newRole) => handleRoleUpdate(record.id, newRole)}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Select.Option value="registered">Registered Nurse</Select.Option>
+              <Select.Option value="physiotherapist">
+                Physiotherapist
+              </Select.Option>
+              <Select.Option value="superAdmin">Super Admin</Select.Option>
+            </Select>
+          </Col>
+        </Row>
       ),
     },
     {

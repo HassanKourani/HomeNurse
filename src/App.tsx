@@ -529,7 +529,7 @@ function AuthenticatedApp() {
           >
             {/* <span className="logo">👨‍⚕️</span> */}
             <Title level={4}>
-              <span>NurseGo</span>
+              <span>CareComfort</span>
             </Title>
           </motion.div>
           <motion.div
@@ -587,14 +587,14 @@ function AuthenticatedApp() {
               <div className="emoji">{card.emoji}</div>
               <h3 className="title">{card.title}</h3>
               <p className="description">{card.description}</p>
-              <div className="stats">
+              {/* <div className="stats">
                 {card.stats.map((stat, i) => (
                   <div key={i} className="stat-item">
                     <span className="value">{stat.value}</span>
                     <span className="label">{stat.label}</span>
                   </div>
                 ))}
-              </div>
+              </div> */}
             </ServiceCard>
           ))}
         </DashboardGrid>
@@ -623,7 +623,7 @@ function UnauthenticatedApp() {
           >
             {/* <span className="logo">👨‍⚕️</span> */}
             <Title level={4}>
-              <span>NurseGo</span>
+              <span>CareComfort</span>
             </Title>
           </motion.div>
           <motion.div
@@ -675,7 +675,7 @@ function UnauthenticatedApp() {
                 <BannerSection>
                   <MainTitle>
                     Welcome Back to
-                    <span>NurseGo</span>
+                    <span>CareComfort</span>
                   </MainTitle>
                   <Subtitle>
                     Access your dashboard to manage patient requests and provide
