@@ -108,5 +108,11 @@
     "en": "English",
     "ar": "العربية",
     "fr": "Français"
+  },
+  "support": {
+    "title": "هل تحتاج إلى مساعدة؟",
+    "contactUs": "اتصل بنا",
+    "phone": "+961 81 940 697",
+    "email": "info@carecomfortapp.com"
   }
 }

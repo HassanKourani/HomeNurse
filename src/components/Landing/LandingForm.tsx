@@ -20,6 +20,8 @@ import {
   CheckCircleFilled,
   GlobalOutlined,
   HistoryOutlined,
+  PhoneFilled,
+  MailOutlined,
 } from "@ant-design/icons";
 import styled from "styled-components";
 import { motion } from "framer-motion";
@@ -163,6 +165,47 @@ const Slogan = styled.p`
   color: #666;
   margin-bottom: 2rem;
   line-height: 1.6;
+`;
+
+const SupportContact = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+
+  @media (max-width: 768px) {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    color: #1890ff;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    background: rgba(24, 144, 255, 0.05);
+    border: 1px solid #1890ff30;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(24, 144, 255, 0.1);
+      transform: translateY(-1px);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    @media (max-width: 480px) {
+      font-size: 0.9rem;
+      padding: 0.4rem 0.8rem;
+    }
+  }
 `;
 
 const FeaturesList = styled.div`
@@ -1033,6 +1076,20 @@ export default function LandingForm() {
               transition={{ delay: 0.4, duration: 0.5 }}
             >
               <Slogan>{t("slogan")}</Slogan>
+              <SupportContact>
+                <div className="contact-item">
+                  <PhoneFilled />
+                  <a href="tel:+96181940697" dir="ltr">
+                    {t("support.phone")}
+                  </a>
+                </div>
+                <div className="contact-item">
+                  <MailOutlined />
+                  <a href="mailto:info@carecomfortapp.com" dir="ltr">
+                    {t("support.email")}
+                  </a>
+                </div>
+              </SupportContact>
             </motion.div>
 
             <motion.div
