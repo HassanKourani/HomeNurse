@@ -13,7 +13,6 @@ import {
   Typography,
   Dropdown,
   List,
-  Tag,
 } from "antd";
 import {
   UploadOutlined,
@@ -31,30 +30,26 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import "../../utils/i18n";
 import { sendNotificationToNurses } from "../../utils/emailUtils";
+import {
+  ServiceType,
+  QuickServiceType,
+  RegularCareType,
+  PsychiatricCareType,
+  PhysiotherapyType,
+  MedicalSupplyType,
+  DoctorVisitType,
+} from "../../types/requests";
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
 
-type ServiceType =
-  | "full_time_private_normal"
-  | "full_time_private_psychiatric"
-  | "part_time_private_normal"
-  | "part_time_private_psychiatric"
-  | "blood_test"
-  | "im"
-  | "iv"
-  | "patient_care"
-  | "hemo_vs"
-  | "physiotherapy"
-  | "other";
-
 export type Area =
   | "beirut"
-  | "near_beirut"
   | "mount_lebanon"
   | "north_lebanon"
   | "south_lebanon"
-  | "bekaa";
+  | "bekaa"
+  | "near_beirut";
 
 type LandingFormValues = {
   full_name: string;
@@ -78,24 +73,25 @@ const AREA_LABELS: Record<Area, string> = {
 
 const PRIVATE_CARE_SERVICES = [
   "full_time_private_normal",
-  "full_time_private_psychiatric",
   "part_time_private_normal",
+  "full_time_private_psychiatric",
   "part_time_private_psychiatric",
 ] as const;
 
 const PHYSIOTHERAPY_SERVICES = ["physiotherapy"] as const;
+
+const MEDICAL_SUPPLY_SERVICES = ["medical_equipment"] as const;
+
+const DOCTOR_VISIT_SERVICES = ["general_doctor"] as const;
 
 const QUICK_SERVICES = [
   "blood_test",
   "im",
   "iv",
   "patient_care",
+  "hemo_vs",
   "other",
 ] as const;
-
-type PrivateCareService = (typeof PRIVATE_CARE_SERVICES)[number];
-type PhysiotherapyService = (typeof PHYSIOTHERAPY_SERVICES)[number];
-type QuickService = (typeof QUICK_SERVICES)[number];
 
 const ENABLED_AREAS = ["beirut", "near_beirut"];
 
@@ -847,145 +843,104 @@ export default function LandingForm() {
             },
           ]}
         >
-          <FixedWidthSelect<ServiceType>
+          <Select
             mode="multiple"
+            showSearch={false}
             placeholder={t("form.fields.serviceType.placeholder")}
-            allowClear
-            showArrow
-            tagRender={(props) => {
-              const { value, closable, onClose } = props;
-              return (
-                <Tag
-                  color="blue"
-                  closable={closable}
-                  onClose={onClose}
-                  style={{ marginRight: 3 }}
-                >
-                  {t(`form.fields.serviceTypes.${value}`)}
-                </Tag>
-              );
-            }}
+            style={{ width: "100%" }}
             onChange={(value: unknown) => {
               const selectedValues = value as ServiceType[];
               const lastSelected = selectedValues[selectedValues.length - 1];
 
               if (!lastSelected) {
-                // If clearing all selections
                 form.setFieldValue("service_type", []);
                 return;
               }
 
-              // Check if the last selected item is a private care service or physiotherapy
               const isLastPrivate = PRIVATE_CARE_SERVICES.includes(
-                lastSelected as PrivateCareService
+                lastSelected as RegularCareType | PsychiatricCareType
               );
               const isLastPhysiotherapy = PHYSIOTHERAPY_SERVICES.includes(
-                lastSelected as PhysiotherapyService
+                lastSelected as PhysiotherapyType
+              );
+              const isLastMedicalSupply = MEDICAL_SUPPLY_SERVICES.includes(
+                lastSelected as MedicalSupplyType
+              );
+              const isLastDoctorVisit = DOCTOR_VISIT_SERVICES.includes(
+                lastSelected as DoctorVisitType
               );
 
-              if (isLastPrivate || isLastPhysiotherapy) {
-                // If selecting a private care or physiotherapy service, only allow that one
+              if (
+                isLastPrivate ||
+                isLastPhysiotherapy ||
+                isLastMedicalSupply ||
+                isLastDoctorVisit
+              ) {
                 form.setFieldValue("service_type", [lastSelected]);
               } else {
-                // For quick services, allow multiple but filter out any private care or physiotherapy services
                 const filteredValues = selectedValues.filter((v) =>
-                  QUICK_SERVICES.includes(v as QuickService)
+                  QUICK_SERVICES.includes(v as QuickServiceType)
                 );
                 form.setFieldValue("service_type", filteredValues);
               }
             }}
           >
-            <Select.OptGroup
-              label={t(
-                "form.fields.serviceTypes.privateGroup",
-                "Private Care Services"
-              )}
-            >
-              {PRIVATE_CARE_SERVICES.map((value) => {
-                const currentValues = form.getFieldValue(
-                  "service_type"
-                ) as ServiceType[];
-                const hasPrivate = currentValues?.some((v) =>
-                  PRIVATE_CARE_SERVICES.includes(v as PrivateCareService)
-                );
-                const hasPhysiotherapy = currentValues?.some((v) =>
-                  PHYSIOTHERAPY_SERVICES.includes(v as PhysiotherapyService)
-                );
-                const isDisabled =
-                  (hasPrivate && value !== currentValues?.[0]) ||
-                  hasPhysiotherapy;
+            <Select.OptGroup label={t("form.fields.serviceTypes.quickGroup")}>
+              <Select.Option value="blood_test">
+                {t("form.fields.serviceTypes.blood_test")}
+              </Select.Option>
+              <Select.Option value="im">
+                {t("form.fields.serviceTypes.im")}
+              </Select.Option>
+              <Select.Option value="iv">
+                {t("form.fields.serviceTypes.iv")}
+              </Select.Option>
+              <Select.Option value="patient_care">
+                {t("form.fields.serviceTypes.patient_care")}
+              </Select.Option>
+              <Select.Option value="hemo_vs">
+                {t("form.fields.serviceTypes.hemo_vs")}
+              </Select.Option>
+              <Select.Option value="other">
+                {t("form.fields.serviceTypes.other")}
+              </Select.Option>
+            </Select.OptGroup>
 
-                return (
-                  <Select.Option
-                    key={value}
-                    value={value}
-                    disabled={isDisabled}
-                  >
-                    {t(`form.fields.serviceTypes.${value}`)}
-                  </Select.Option>
-                );
-              })}
+            <Select.OptGroup label={t("form.fields.serviceTypes.doctorGroup")}>
+              <Select.Option value="general_doctor">
+                {t("form.fields.serviceTypes.general_doctor")}
+              </Select.Option>
+            </Select.OptGroup>
+
+            <Select.OptGroup label={t("form.fields.serviceTypes.privateGroup")}>
+              <Select.Option value="full_time_private_normal">
+                {t("form.fields.serviceTypes.full_time_private_normal")}
+              </Select.Option>
+              <Select.Option value="part_time_private_normal">
+                {t("form.fields.serviceTypes.part_time_private_normal")}
+              </Select.Option>
+              <Select.Option value="full_time_private_psychiatric">
+                {t("form.fields.serviceTypes.full_time_private_psychiatric")}
+              </Select.Option>
+              <Select.Option value="part_time_private_psychiatric">
+                {t("form.fields.serviceTypes.part_time_private_psychiatric")}
+              </Select.Option>
             </Select.OptGroup>
 
             <Select.OptGroup
-              label={t(
-                "form.fields.serviceTypes.physiotherapyGroup",
-                "Physiotherapy Services"
-              )}
+              label={t("form.fields.serviceTypes.physiotherapyGroup")}
             >
-              {PHYSIOTHERAPY_SERVICES.map((value) => {
-                const currentValues = form.getFieldValue(
-                  "service_type"
-                ) as ServiceType[];
-                const hasPrivate = currentValues?.some((v) =>
-                  PRIVATE_CARE_SERVICES.includes(v as PrivateCareService)
-                );
-                const hasPhysiotherapy = currentValues?.some((v) =>
-                  PHYSIOTHERAPY_SERVICES.includes(v as PhysiotherapyService)
-                );
-                const isDisabled =
-                  hasPrivate ||
-                  (hasPhysiotherapy && value !== currentValues?.[0]);
-
-                return (
-                  <Select.Option
-                    key={value}
-                    value={value}
-                    disabled={isDisabled}
-                  >
-                    {t(`form.fields.serviceTypes.${value}`)}
-                  </Select.Option>
-                );
-              })}
+              <Select.Option value="physiotherapy">
+                {t("form.fields.serviceTypes.physiotherapy")}
+              </Select.Option>
             </Select.OptGroup>
 
-            <Select.OptGroup
-              label={t("form.fields.serviceTypes.quickGroup", "Quick Services")}
-            >
-              {QUICK_SERVICES.map((value) => {
-                const currentValues = form.getFieldValue(
-                  "service_type"
-                ) as ServiceType[];
-                const hasPrivate = currentValues?.some((v) =>
-                  PRIVATE_CARE_SERVICES.includes(v as PrivateCareService)
-                );
-                const hasPhysiotherapy = currentValues?.some((v) =>
-                  PHYSIOTHERAPY_SERVICES.includes(v as PhysiotherapyService)
-                );
-                const isDisabled = hasPrivate || hasPhysiotherapy;
-
-                return (
-                  <Select.Option
-                    key={value}
-                    value={value}
-                    disabled={isDisabled}
-                  >
-                    {t(`form.fields.serviceTypes.${value}`)}
-                  </Select.Option>
-                );
-              })}
+            <Select.OptGroup label={t("form.fields.serviceTypes.medicalGroup")}>
+              <Select.Option value="medical_equipment">
+                {t("form.fields.serviceTypes.medical_equipment")}
+              </Select.Option>
             </Select.OptGroup>
-          </FixedWidthSelect>
+          </Select>
         </Form.Item>
 
         <Form.Item

@@ -37,26 +37,20 @@ import dayjs from "dayjs";
 import { useNotification } from "../utils/NotificationProvider";
 import { sendNurseAssignmentRequest } from "../utils/emailUtils";
 import { Area } from "../components/Landing/LandingForm";
+import {
+  ServiceType,
+  RequestStatus,
+  statusColors,
+  Patient,
+} from "../types/requests";
 
 const { Title, Text } = Typography;
 
 type RequestDetails = {
   id: string;
-  service_type: Array<
-    | "blood_test"
-    | "im"
-    | "iv"
-    | "patient_care"
-    | "hemo_vs"
-    | "other"
-    | "full_time_private_normal"
-    | "part_time_private_normal"
-    | "full_time_private_psychiatric"
-    | "part_time_private_psychiatric"
-    | "physiotherapy"
-  >;
+  service_type: ServiceType[];
   details: string;
-  status: "pending" | "accepted" | "completed" | "cancelled";
+  status: RequestStatus;
   created_at: string;
   price: number | null;
   visit_date: string | null;
@@ -67,12 +61,7 @@ type RequestDetails = {
     phone_number: string;
     working_hours?: number;
   }>;
-  patient: {
-    full_name: string;
-    phone_number: string;
-    location: string;
-    area: string;
-  };
+  patient: Patient;
 };
 
 interface WorkingHoursLog {
@@ -274,7 +263,9 @@ const serviceTypeLabels = {
   full_time_private_psychiatric: "Full Time Psychiatric Care",
   part_time_private_psychiatric: "Part Time Psychiatric Care",
   physiotherapy: "Physiotherapy",
-};
+  medical_equipment: "Medical Equipment",
+  general_doctor: "General Doctor",
+} as const;
 
 const areaLabels: Record<Area, string> = {
   beirut: "Beirut",
@@ -285,52 +276,15 @@ const areaLabels: Record<Area, string> = {
   bekaa: "Bekaa",
 };
 
-const statusColors = {
-  pending: "gold",
-  accepted: "blue",
-  completed: "green",
-  cancelled: "red",
-};
-
-const getServiceTypeColor = (type: string) => {
+const getServiceTypeColor = (type: ServiceType) => {
   if (type.includes("psychiatric")) return "purple";
   if (type.includes("private_normal")) return "blue";
   if (type === "physiotherapy") return "green";
+  if (type === "medical_equipment") return "orange";
   return "cyan";
 };
 
-const PriceEditSection = styled.div`
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-
-  .ant-input {
-    width: 160px;
-    flex-shrink: 0;
-  }
-
-  .ant-btn {
-    min-width: 90px;
-    flex-shrink: 0;
-  }
-
-  @media (max-width: 576px) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-
-    .ant-input {
-      width: 100% !important;
-    }
-
-    .ant-btn {
-      width: 100%;
-    }
-  }
-`;
-
-const isQuickService = (type: string) => {
+const isQuickService = (type: ServiceType) => {
   const quickServices = [
     "blood_test",
     "im",
@@ -338,22 +292,29 @@ const isQuickService = (type: string) => {
     "patient_care",
     "hemo_vs",
     "other",
-  ];
-  return quickServices.includes(type);
+  ] as const;
+  return quickServices.includes(type as (typeof quickServices)[number]);
 };
 
-const isPhysiotherapyService = (type: string) => {
+const isPhysiotherapyService = (type: ServiceType) => {
   return type === "physiotherapy";
 };
 
-const isPrivateOrPsychiatricService = (type: string) => {
+const isMedicalSupplyService = (type: ServiceType) => {
+  return type === "medical_equipment";
+};
+const isDoctorVisitService = (type: ServiceType) => {
+  return type === "general_doctor";
+};
+
+const isPrivateOrPsychiatricService = (type: ServiceType) => {
   const privateServices = [
     "full_time_private_normal",
     "full_time_private_psychiatric",
     "part_time_private_normal",
     "part_time_private_psychiatric",
-  ];
-  return privateServices.includes(type);
+  ] as const;
+  return privateServices.includes(type as (typeof privateServices)[number]);
 };
 
 const canViewRequest = (
@@ -368,7 +329,10 @@ const canViewRequest = (
   const isPhysio = isPhysiotherapyService(requestType);
   const isQuick = isQuickService(requestType);
   const isPrivateOrPsych = isPrivateOrPsychiatricService(requestType);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const isMedicalSupply = isMedicalSupplyService(requestType); // TODO: Add medical supply access
 
+  const isDoctorVisit = isDoctorVisitService(requestType);
   // Super admin can view all requests
   if (userRole === "superAdmin") {
     return true;
@@ -379,10 +343,14 @@ const canViewRequest = (
     return isPhysio;
   }
 
-  // Regular nurses can view quick services and private/psychiatric care, but not physiotherapy
+  // Regular nurses can view quick services, private/psychiatric care, and medical supply requests
   if (userRole === "registered") {
     const hasAccess = isQuick || isPrivateOrPsych;
     return hasAccess;
+  }
+
+  if (userRole === "doctor") {
+    return isDoctorVisit;
   }
 
   // Patients can view their own requests
@@ -470,6 +438,37 @@ const DocumentModal = styled(Modal)`
     justify-content: center;
     gap: 16px;
     border-top: 1px solid #f0f0f0;
+  }
+`;
+
+const PriceEditSection = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+
+  .ant-input {
+    width: 160px;
+    flex-shrink: 0;
+  }
+
+  .ant-btn {
+    min-width: 90px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 576px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+
+    .ant-input {
+      width: 100% !important;
+    }
+
+    .ant-btn {
+      width: 100%;
+    }
   }
 `;
 

@@ -71,20 +71,24 @@
         "upload": "Cliquez pour Télécharger"
       },
       "serviceTypes": {
-        "full_time_private_normal": "Soins privés à temps plein",
-        "full_time_private_psychiatric": "Soins psychiatriques à temps plein",
-        "part_time_private_normal": "Soins privés à temps partiel",
-        "part_time_private_psychiatric": "Soins psychiatriques à temps partiel",
-        "blood_test": "Test sanguin",
-        "im": "Intramusculaire (IM)",
-        "iv": "Intraveineuse (IV)",
-        "patient_care": "Soins aux patients",
-        "hemo_vs": "Hémo+ s/v",
-        "physiotherapy": "Physiothérapie",
-        "other": "Autre",
+        "medicalGroup": "Fournitures Médicales",
+        "medical_equipment": "Équipement Médical",
+        "quickGroup": "Services Rapides",
         "privateGroup": "Services de Soins Privés",
         "physiotherapyGroup": "Services de Physiothérapie",
-        "quickGroup": "Services Rapides"
+        "blood_test": "Analyse de Sang",
+        "im": "Injection Intramusculaire",
+        "iv": "Thérapie Intraveineuse",
+        "patient_care": "Soins aux Patients",
+        "hemo_vs": "Signes Vitaux/Hémodynamiques",
+        "other": "Autres Services",
+        "physiotherapy": "Physiothérapie",
+        "full_time_private_normal": "Soins Privés Temps Plein",
+        "part_time_private_normal": "Soins Privés Temps Partiel",
+        "full_time_private_psychiatric": "Soins Psychiatriques Temps Plein",
+        "part_time_private_psychiatric": "Soins Psychiatriques Temps Partiel",
+        "doctorGroup": "Visites Médicales",
+        "general_doctor": "Médecin Généraliste"
       }
     },
     "buttons": {

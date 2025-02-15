@@ -46,6 +46,8 @@ const serviceTypeLabels: Record<ServiceType, string> = {
   part_time_private_normal: "Part Time Regular Care",
   full_time_private_psychiatric: "Full Time Psychiatric Care",
   part_time_private_psychiatric: "Part Time Psychiatric Care",
+  medical_equipment: "Medical Equipment",
+  general_doctor: "General Doctor",
 };
 
 const getServiceTypeColor = (type: ServiceType): string => {

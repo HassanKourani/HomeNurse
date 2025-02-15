@@ -18,30 +18,30 @@ export type QuickServiceType =
   | "patient_care"
   | "hemo_vs"
   | "other";
+
 export type RegularCareType =
   | "full_time_private_normal"
   | "part_time_private_normal";
+
 export type PsychiatricCareType =
   | "full_time_private_psychiatric"
   | "part_time_private_psychiatric";
+
 export type PhysiotherapyType = "physiotherapy";
+export type MedicalSupplyType = "medical_equipment";
+export type DoctorVisitType = "general_doctor";
 
 export type ServiceRequest<T> = BaseServiceRequest & {
   service_type: Array<T>;
 };
 
 export type ServiceType =
-  | "blood_test"
-  | "im"
-  | "iv"
-  | "patient_care"
-  | "hemo_vs"
-  | "other"
-  | "physiotherapy"
-  | "full_time_private_normal"
-  | "part_time_private_normal"
-  | "full_time_private_psychiatric"
-  | "part_time_private_psychiatric";
+  | QuickServiceType
+  | RegularCareType
+  | PsychiatricCareType
+  | PhysiotherapyType
+  | MedicalSupplyType
+  | DoctorVisitType;
 
 export type RequestStatus = "pending" | "accepted" | "completed" | "cancelled";
 

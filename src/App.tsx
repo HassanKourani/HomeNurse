@@ -32,6 +32,8 @@ import { NotificationProvider } from "./utils/NotificationProvider";
 import ProfilePage from "./pages/ProfilePage";
 import WaitingApprovalPage from "./pages/WaitingApprovalPage";
 import PhysiotherapyRequests from "./pages/PhysiotherapyRequests";
+import MedicalSupplyRequests from "./pages/MedicalSupplyRequests";
+import DoctorVisitRequests from "./pages/DoctorVisitRequests";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -507,6 +509,23 @@ function AuthenticatedApp() {
       onClick: () => navigate(`/profile/${user?.id}`),
       roles: ["superAdmin", "registered", "nurse", "physiotherapist"],
     },
+    {
+      emoji: "💊",
+      title: "Medical Supply Requests",
+      description: "View and manage medical supply and equipment requests.",
+      stats: [{ value: "New", label: "Service" }],
+      onClick: () => navigate("/medical-supplies"),
+      roles: ["superAdmin"],
+    },
+    {
+      emoji: "👨‍⚕️",
+      title: "Doctor Visits",
+      description:
+        "Schedule visits with specialized doctors for consultations and medical care.",
+      stats: [{ value: "New", label: "Service" }],
+      onClick: () => navigate("/doctor-visits"),
+      roles: ["superAdmin", "registered"],
+    },
   ];
 
   const visibleServiceCards = allServiceCards.filter((card) =>
@@ -746,6 +765,11 @@ function AppWithProvider() {
               path="/physiotherapy-requests"
               element={<PhysiotherapyRequests />}
             />
+            <Route
+              path="/medical-supplies"
+              element={<MedicalSupplyRequests />}
+            />
+            <Route path="/doctor-visits" element={<DoctorVisitRequests />} />
             <Route path="/*" element={<App />} />
           </Routes>
         </BrowserRouter>
