@@ -1,50 +1,31 @@
 import { useEffect, useState } from "react";
-import { Table, Typography, Tag, Button, Card } from "antd";
-import { motion } from "framer-motion";
-import styled from "styled-components";
-import supabase from "../utils/supabase";
+import { Typography, Tag, Button } from "antd";
 import { useNavigate } from "react-router-dom";
 import { HomeOutlined, EyeOutlined } from "@ant-design/icons";
 import {
   RequestFilters,
   FilterValues,
 } from "../components/Filters/RequestFilters";
+import supabase from "../utils/supabase";
+import {
+  PageContainer,
+  HeaderSection,
+  StyledTable,
+  MobileCardView,
+  StyledCard,
+  ActionButton,
+} from "../components/RequestPages/styles";
+import { DatabaseResponse, statusColors, ServiceType } from "../types/requests";
 import { useAuth } from "../utils/AuthContext";
 import { useNotification } from "../utils/NotificationProvider";
 
 const { Title, Text } = Typography;
 
-type DatabaseResponse = {
-  id: string;
-  service_type: Array<
-    | "blood_test"
-    | "im"
-    | "iv"
-    | "patient_care"
-    | "hemo_vs"
-    | "other"
-    | "full_time_private_normal"
-    | "part_time_private_normal"
-    | "full_time_private_psychiatric"
-    | "part_time_private_psychiatric"
-  >;
-  details: string;
-  status: "pending" | "accepted" | "completed" | "cancelled";
-  created_at: string;
-  patient: {
-    full_name: string;
-    phone_number: string;
-    location: string;
-    area: string;
-  };
-  working_hours: number;
-};
-
 // Add type for raw data from Supabase
 type RawAssignmentData = {
   request: {
     id: string;
-    service_type: DatabaseResponse["service_type"];
+    service_type: ServiceType[];
     details: string;
     status: DatabaseResponse["status"];
     created_at: string;
@@ -53,199 +34,7 @@ type RawAssignmentData = {
   working_hours: number;
 };
 
-const PageContainer = styled(motion.div)`
-  padding: 24px;
-  margin: 0 auto;
-  background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
-  min-height: 100vh;
-  padding-top: 72px;
-`;
-
-const HeaderSection = styled.div`
-  margin-bottom: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-
-  .title-section {
-    h2 {
-      margin: 0;
-      color: #1a3d7c;
-    }
-
-    p {
-      margin: 8px 0 0;
-      color: #666;
-      font-size: 16px;
-    }
-  }
-
-  .actions-section {
-    display: flex;
-    gap: 12px;
-  }
-
-  @media (max-width: 576px) {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
-
-    .actions-section {
-      justify-content: center;
-    }
-  }
-`;
-
-const StyledTable = styled(Table<DatabaseResponse>)`
-  .ant-table {
-    background: transparent;
-    overflow-x: auto;
-  }
-
-  .ant-table-wrapper {
-    background: white;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  }
-
-  .ant-table-thead > tr > th {
-    background: rgba(24, 144, 255, 0.05);
-    color: #1a3d7c;
-    font-weight: 600;
-    border-bottom: 2px solid #f0f0f0;
-    padding: 16px;
-    white-space: nowrap;
-  }
-
-  .ant-table-tbody > tr > td {
-    padding: 16px;
-    border-bottom: 1px solid #f0f0f0;
-  }
-
-  .ant-table-tbody > tr:hover > td {
-    background: rgba(24, 144, 255, 0.02);
-  }
-
-  .ant-pagination {
-    margin: 16px 0;
-  }
-
-  @media (max-width: 1024px) {
-    td {
-      white-space: nowrap;
-
-      &.details-column {
-        max-width: 200px;
-        white-space: normal;
-      }
-    }
-  }
-
-  @media (max-width: 576px) {
-    display: none;
-  }
-`;
-
-const MobileCardView = styled.div`
-  display: none;
-
-  @media (max-width: 576px) {
-    display: block;
-  }
-`;
-
-const StyledCard = styled(Card)`
-  margin-bottom: 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-
-  .ant-card-body {
-    padding: 16px;
-  }
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-
-    h3 {
-      margin: 0;
-      color: #1a3d7c;
-      font-weight: 600;
-    }
-  }
-
-  .card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .card-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #f0f0f0;
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    .label {
-      color: #666;
-      font-size: 14px;
-    }
-
-    .value {
-      color: #1a3d7c;
-      font-weight: 500;
-    }
-  }
-
-  .card-actions {
-    margin-top: 16px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-  }
-`;
-
-const ActionButton = styled(Button)`
-  height: 40px;
-  padding: 0 20px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-
-  &.ant-btn-primary {
-    background: linear-gradient(120deg, #1890ff, #096dd9);
-    border: none;
-    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.25);
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
-    }
-  }
-
-  &.ant-btn-default {
-    border: 1px solid #d9d9d9;
-
-    &:hover {
-      border-color: #1890ff;
-      color: #1890ff;
-    }
-  }
-`;
-
-const serviceTypeLabels = {
+const serviceTypeLabels: Record<ServiceType, string> = {
   blood_test: "Blood Test",
   im: "Intramuscular Injection",
   iv: "Intravenous Therapy",
@@ -259,14 +48,7 @@ const serviceTypeLabels = {
   part_time_private_psychiatric: "Part Time Psychiatric Care",
 };
 
-const statusColors = {
-  pending: "gold",
-  accepted: "blue",
-  completed: "green",
-  cancelled: "red",
-};
-
-const getServiceTypeColor = (type: string) => {
+const getServiceTypeColor = (type: ServiceType): string => {
   if (type.includes("psychiatric")) return "purple";
   if (type.includes("private_normal")) return "blue";
   return "cyan";
@@ -411,12 +193,6 @@ export default function MyAssignments() {
       width: 200,
     },
     {
-      title: "Contact",
-      dataIndex: ["patient", "phone_number"],
-      key: "phone_number",
-      width: 150,
-    },
-    {
       title: "Location",
       key: "location",
       render: (_: unknown, record: DatabaseResponse) => (
@@ -430,7 +206,7 @@ export default function MyAssignments() {
       title: "Service Types",
       dataIndex: "service_type",
       key: "service_type",
-      render: (types: DatabaseResponse["service_type"]) => (
+      render: (types: ServiceType[]) => (
         <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
           {types.map((type, index) => (
             <Tag key={index} color={getServiceTypeColor(type)}>
@@ -503,7 +279,7 @@ export default function MyAssignments() {
               justifyContent: "flex-end",
             }}
           >
-            {request.service_type.map((type, index) => (
+            {request.service_type.map((type: ServiceType, index: number) => (
               <Tag key={index} color={getServiceTypeColor(type)}>
                 {serviceTypeLabels[type]}
               </Tag>
