@@ -486,30 +486,6 @@ function AuthenticatedApp() {
       roles: ["superAdmin", "physiotherapist"],
     },
     {
-      emoji: "📋",
-      title: "My Assignments",
-      description:
-        "View your current and upcoming care assignments, schedules, and patient details.",
-      stats: [
-        { value: "4", label: "Active" },
-        { value: "2", label: "Upcoming" },
-      ],
-      onClick: () => navigate("/my-assignments"),
-      roles: ["superAdmin", "registered", "nurse", "physiotherapist"],
-    },
-    {
-      emoji: "👤",
-      title: "My Profile",
-      description:
-        "Manage your professional profile, update certifications, and view performance metrics.",
-      stats: [
-        { value: "15", label: "Completed" },
-        { value: "4.9", label: "Rating" },
-      ],
-      onClick: () => navigate(`/profile/${user?.id}`),
-      roles: ["superAdmin", "registered", "nurse", "physiotherapist"],
-    },
-    {
       emoji: "💊",
       title: "Medical Supply Requests",
       description: "View and manage medical supply and equipment requests.",
@@ -524,7 +500,44 @@ function AuthenticatedApp() {
         "Schedule visits with specialized doctors for consultations and medical care.",
       stats: [{ value: "New", label: "Service" }],
       onClick: () => navigate("/doctor-visits"),
-      roles: ["superAdmin", "registered"],
+      roles: ["superAdmin", "general_doctor"],
+    },
+
+    {
+      emoji: "📋",
+      title: "My Assignments",
+      description:
+        "View your current and upcoming care assignments, schedules, and patient details.",
+      stats: [
+        { value: "4", label: "Active" },
+        { value: "2", label: "Upcoming" },
+      ],
+      onClick: () => navigate("/my-assignments"),
+      roles: [
+        "superAdmin",
+        "registered",
+        "nurse",
+        "physiotherapist",
+        "general_doctor",
+      ],
+    },
+    {
+      emoji: "👤",
+      title: "My Profile",
+      description:
+        "Manage your professional profile, update certifications, and view performance metrics.",
+      stats: [
+        { value: "15", label: "Completed" },
+        { value: "4.9", label: "Rating" },
+      ],
+      onClick: () => navigate(`/profile/${user?.id}`),
+      roles: [
+        "superAdmin",
+        "registered",
+        "nurse",
+        "physiotherapist",
+        "general_doctor",
+      ],
     },
   ];
 

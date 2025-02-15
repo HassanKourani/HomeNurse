@@ -13,7 +13,7 @@ export default function MedicalSupplyRequests() {
       serviceTypes={serviceTypeLabels}
       tagColor="orange"
       allowedServiceTypes={["medical_equipment"]}
-      showStatus={true}
+      showStatus={false}
       statusOptions={[
         { value: "pending", label: "Pending" },
         { value: "accepted", label: "Accepted" },

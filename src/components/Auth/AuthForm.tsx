@@ -308,6 +308,9 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 <Select.Option value="physiotherapist">
                   Physiotherapist
                 </Select.Option>
+                <Select.Option value="general_doctor">
+                  General Doctor
+                </Select.Option>
               </Select>
             </Form.Item>
           </>

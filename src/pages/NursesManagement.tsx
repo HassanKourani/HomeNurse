@@ -50,7 +50,7 @@ type NurseProfile = {
   full_name: string;
   email: string;
   phone_number: string;
-  role: "registered" | "physiotherapist" | "superAdmin";
+  role: "registered" | "physiotherapist" | "general_doctor" | "superAdmin";
   created_at: string;
   is_approved: boolean;
   is_blocked: boolean;
@@ -249,12 +249,14 @@ const ActionButton = styled(Button)`
 const roleColors = {
   registered: "blue",
   physiotherapist: "red",
+  general_doctor: "magenta",
   superAdmin: "gold",
 };
 
 const roleLabels = {
   registered: "Registered Nurse (RN)",
   physiotherapist: "Physiotherapist",
+  general_doctor: "General Doctor",
   superAdmin: "Super Admin",
 };
 
@@ -288,7 +290,12 @@ export default function NursesManagement() {
           )
         `
         )
-        .in("role", ["registered", "physiotherapist", "superAdmin"])
+        .in("role", [
+          "registered",
+          "physiotherapist",
+          "general_doctor",
+          "superAdmin",
+        ])
         .not("id", "eq", user?.id)
         .not("email", "eq", "hkourani36@gmail.com")
         .order("created_at", { ascending: false });
@@ -525,6 +532,9 @@ export default function NursesManagement() {
               <Select.Option value="registered">Registered Nurse</Select.Option>
               <Select.Option value="physiotherapist">
                 Physiotherapist
+              </Select.Option>
+              <Select.Option value="general_doctor">
+                General Doctor
               </Select.Option>
               <Select.Option value="superAdmin">Super Admin</Select.Option>
             </Select>

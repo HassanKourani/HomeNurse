@@ -837,7 +837,7 @@ export default function ProfilePage() {
         <Col xs={24} md={8}>
           <StatisticCard>
             <Statistic
-              title="Amount We Owe for Private Care"
+              title="Amount We Owe for Regular Care"
               value={Math.abs(
                 Object.entries(stats.serviceTypeStats)
                   .filter(([type]) => !isQuickService(type))

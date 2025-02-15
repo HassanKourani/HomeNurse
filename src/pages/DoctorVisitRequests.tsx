@@ -13,7 +13,7 @@ export default function DoctorVisitRequests() {
       serviceTypes={serviceTypeLabels}
       tagColor="magenta"
       allowedServiceTypes={["general_doctor"]}
-      showStatus={true}
+      showStatus={false}
       statusOptions={[
         { value: "pending", label: "Pending" },
         { value: "accepted", label: "Accepted" },
