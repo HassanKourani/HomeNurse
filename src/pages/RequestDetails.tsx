@@ -300,9 +300,9 @@ const isPhysiotherapyService = (type: ServiceType) => {
   return type === "physiotherapy";
 };
 
-const isMedicalSupplyService = (type: ServiceType) => {
-  return type === "medical_equipment";
-};
+// const isMedicalSupplyService = (type: ServiceType) => {
+//   return type === "medical_equipment";
+// };
 const isDoctorVisitService = (type: ServiceType) => {
   return type === "general_doctor";
 };
@@ -329,8 +329,7 @@ const canViewRequest = (
   const isPhysio = isPhysiotherapyService(requestType);
   const isQuick = isQuickService(requestType);
   const isPrivateOrPsych = isPrivateOrPsychiatricService(requestType);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const isMedicalSupply = isMedicalSupplyService(requestType); // TODO: Add medical supply access
+  // const isMedicalSupply = isMedicalSupplyService(requestType); // TODO: Add medical supply access
 
   const isDoctorVisit = isDoctorVisitService(requestType);
   // Super admin can view all requests
