@@ -70,6 +70,15 @@
         "label": "Document Justificatif (Optionnel)",
         "upload": "Cliquez pour Télécharger"
       },
+      "paymentMethod": {
+        "label": "Mode de Paiement",
+        "whish": "Whish",
+        "cash": "Paiement à la Livraison",
+        "placeholder": "Veuillez sélectionner un mode de paiement",
+        "whishDescription": "Payez en toute sécurité avec Whish",
+        "cashDescription": "Payez en espèces après le service",
+        "cashOnlyQuickServices": "Le paiement en espèces n'est disponible que pour les services rapides"
+      },
       "serviceTypes": {
         "medicalGroup": "Fournitures Médicales",
         "medical_equipment": "Équipement Médical",

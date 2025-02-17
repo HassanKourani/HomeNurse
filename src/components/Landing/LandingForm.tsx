@@ -13,6 +13,7 @@ import {
   Typography,
   Dropdown,
   List,
+  Radio,
 } from "antd";
 import {
   UploadOutlined,
@@ -21,6 +22,8 @@ import {
   HistoryOutlined,
   PhoneFilled,
   MailOutlined,
+  WalletOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import styled from "styled-components";
 import { motion } from "framer-motion";
@@ -51,6 +54,8 @@ export type Area =
   | "bekaa"
   | "near_beirut";
 
+type PaymentMethod = "whish" | "cash";
+
 type LandingFormValues = {
   full_name: string;
   phone_number: string;
@@ -59,6 +64,7 @@ type LandingFormValues = {
   area: Area;
   location: string;
   details: string;
+  payment_method: PaymentMethod;
 };
 
 const AREA_LABELS: Record<Area, string> = {
@@ -501,6 +507,66 @@ const FixedWidthSelect = styled(Select)`
   }
 `;
 
+const PaymentMethodWrapper = styled.div`
+  .ant-radio-group {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+
+    @media (max-width: 576px) {
+      flex-direction: column;
+    }
+  }
+
+  .payment-option {
+    flex: 1;
+    cursor: pointer;
+    border: 2px solid #e8e8e8;
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.3s ease;
+    background: white;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    &:hover {
+      border-color: #1890ff;
+      background: #f0f7ff;
+    }
+
+    &.selected {
+      border-color: #1890ff;
+      background: #f0f7ff;
+    }
+
+    .icon {
+      font-size: 24px;
+      color: #1890ff;
+    }
+
+    .content {
+      flex: 1;
+
+      .title {
+        font-weight: 600;
+        color: #1a3d7c;
+        margin-bottom: 4px;
+      }
+
+      .description {
+        font-size: 12px;
+        color: #666;
+      }
+    }
+
+    .ant-radio {
+      position: absolute;
+      opacity: 0;
+    }
+  }
+`;
+
 export default function LandingForm() {
   const [form] = Form.useForm<LandingFormValues>();
   const [loading, setLoading] = useState(false);
@@ -509,6 +575,9 @@ export default function LandingForm() {
   const [direction, setDirection] = useState(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const [selectedPayment, setSelectedPayment] =
+    useState<PaymentMethod>("whish");
+  const [showCashOption, setShowCashOption] = useState(false);
   const notification = useNotification();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -579,6 +648,52 @@ export default function LandingForm() {
     onClick: ({ key }: { key: string }) => changeLanguage(key),
   };
 
+  const handlePaymentMethodChange = (value: PaymentMethod) => {
+    setSelectedPayment(value);
+    form.setFieldsValue({ payment_method: value });
+  };
+
+  const isOnlyQuickServices = (services: ServiceType[] | undefined) => {
+    if (!services || services.length === 0) return false;
+    return services.every((service) =>
+      QUICK_SERVICES.includes(service as QuickServiceType)
+    );
+  };
+
+  // Add this effect to watch form values
+  useEffect(() => {
+    // Set initial value
+    const currentServices = form.getFieldValue("service_type") || [];
+    const isQuickOnly = isOnlyQuickServices(currentServices);
+    setShowCashOption(isQuickOnly);
+
+    // If not quick services and payment is cash, switch to whish
+    if (!isQuickOnly && selectedPayment === "cash") {
+      handlePaymentMethodChange("whish");
+    }
+
+    // Watch for changes
+    const { setFieldsValue, getFieldValue } = form;
+    const originalSetFieldsValue = setFieldsValue;
+
+    form.setFieldsValue = (...args) => {
+      const result = originalSetFieldsValue.apply(form, args);
+      const services = getFieldValue("service_type") || [];
+      const isQuickOnly = isOnlyQuickServices(services);
+      setShowCashOption(isQuickOnly);
+
+      if (!isQuickOnly && selectedPayment === "cash") {
+        handlePaymentMethodChange("whish");
+      }
+
+      return result;
+    };
+
+    return () => {
+      form.setFieldsValue = originalSetFieldsValue;
+    };
+  }, [selectedPayment]); // Add selectedPayment to dependencies
+
   const handleSubmit = async () => {
     try {
       setLoading(true);
@@ -625,7 +740,7 @@ export default function LandingForm() {
         imageId = data.path;
       }
 
-      // 3. Create request with array of service types
+      // 3. Create request with array of service types and payment type
       const { data: requestData, error: requestError } = await supabase
         .from("requests")
         .insert([
@@ -636,6 +751,7 @@ export default function LandingForm() {
             status: "pending",
             image_id: imageId,
             created_at: new Date().toISOString(),
+            payment_type: formValues.payment_method, // Make sure to include the payment method
           },
         ])
         .select()
@@ -852,36 +968,50 @@ export default function LandingForm() {
               const selectedValues = value as ServiceType[];
               const lastSelected = selectedValues[selectedValues.length - 1];
 
+              let newValues: ServiceType[] = [];
+
               if (!lastSelected) {
-                form.setFieldValue("service_type", []);
-                return;
+                newValues = [];
+              } else {
+                const isLastPrivate = PRIVATE_CARE_SERVICES.includes(
+                  lastSelected as RegularCareType | PsychiatricCareType
+                );
+                const isLastPhysiotherapy = PHYSIOTHERAPY_SERVICES.includes(
+                  lastSelected as PhysiotherapyType
+                );
+                const isLastMedicalSupply = MEDICAL_SUPPLY_SERVICES.includes(
+                  lastSelected as MedicalSupplyType
+                );
+                const isLastDoctorVisit = DOCTOR_VISIT_SERVICES.includes(
+                  lastSelected as DoctorVisitType
+                );
+
+                if (
+                  isLastPrivate ||
+                  isLastPhysiotherapy ||
+                  isLastMedicalSupply ||
+                  isLastDoctorVisit
+                ) {
+                  newValues = [lastSelected];
+                } else {
+                  newValues = selectedValues.filter((v) =>
+                    QUICK_SERVICES.includes(v as QuickServiceType)
+                  );
+                }
               }
 
-              const isLastPrivate = PRIVATE_CARE_SERVICES.includes(
-                lastSelected as RegularCareType | PsychiatricCareType
-              );
-              const isLastPhysiotherapy = PHYSIOTHERAPY_SERVICES.includes(
-                lastSelected as PhysiotherapyType
-              );
-              const isLastMedicalSupply = MEDICAL_SUPPLY_SERVICES.includes(
-                lastSelected as MedicalSupplyType
-              );
-              const isLastDoctorVisit = DOCTOR_VISIT_SERVICES.includes(
-                lastSelected as DoctorVisitType
-              );
+              form.setFieldsValue({ service_type: newValues });
 
+              // Update showCashOption state based on the new values
+              setShowCashOption(isOnlyQuickServices(newValues));
+
+              // If we're switching away from quick services and cash is selected,
+              // switch to whish payment
               if (
-                isLastPrivate ||
-                isLastPhysiotherapy ||
-                isLastMedicalSupply ||
-                isLastDoctorVisit
+                !isOnlyQuickServices(newValues) &&
+                selectedPayment === "cash"
               ) {
-                form.setFieldValue("service_type", [lastSelected]);
-              } else {
-                const filteredValues = selectedValues.filter((v) =>
-                  QUICK_SERVICES.includes(v as QuickServiceType)
-                );
-                form.setFieldValue("service_type", filteredValues);
+                handlePaymentMethodChange("whish");
               }
             }}
           >
@@ -957,6 +1087,86 @@ export default function LandingForm() {
             rows={4}
             placeholder={t("form.fields.details.placeholder")}
           />
+        </Form.Item>
+
+        <Form.Item
+          label={t("form.fields.paymentMethod.label")}
+          name="payment_method"
+          initialValue="whish"
+          dependencies={["service_type"]}
+          rules={[
+            {
+              required: true,
+              message: t("form.fields.paymentMethod.placeholder"),
+            },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                const services = getFieldValue("service_type");
+                if (!isOnlyQuickServices(services) && value === "cash") {
+                  return Promise.reject(
+                    new Error(
+                      t("form.fields.paymentMethod.cashOnlyQuickServices")
+                    )
+                  );
+                }
+                return Promise.resolve();
+              },
+            }),
+          ]}
+        >
+          <PaymentMethodWrapper>
+            <Radio.Group
+              value={selectedPayment}
+              onChange={(e) => {
+                const newValue = e.target.value as PaymentMethod;
+                const services = form.getFieldValue("service_type");
+                if (newValue === "cash" && !isOnlyQuickServices(services)) {
+                  return;
+                }
+                handlePaymentMethodChange(newValue);
+                form.setFieldsValue({ payment_method: newValue }); // Ensure form value is updated
+              }}
+            >
+              <label
+                className={`payment-option ${
+                  selectedPayment === "whish" ? "selected" : ""
+                }`}
+              >
+                <Radio value="whish" />
+                <span className="icon">
+                  <WalletOutlined />
+                </span>
+                <div className="content">
+                  <div className="title">
+                    {t("form.fields.paymentMethod.whish")}
+                  </div>
+                  <div className="description">
+                    {t("form.fields.paymentMethod.whishDescription")}
+                  </div>
+                </div>
+              </label>
+              {showCashOption && (
+                <label
+                  className={`payment-option ${
+                    selectedPayment === "cash" ? "selected" : ""
+                  }`}
+                >
+                  <Radio value="cash" />
+                  <span className="icon">
+                    <DollarOutlined />
+                  </span>
+                  <div className="content">
+                    <div className="title">
+                      {t("form.fields.paymentMethod.cash")}
+                    </div>
+                    <div className="description">
+                      {t("form.fields.paymentMethod.cashDescription")}
+                    </div>
+                  </div>
+                </label>
+              )}
+            </Radio.Group>
+          </PaymentMethodWrapper>
         </Form.Item>
 
         <Form.Item

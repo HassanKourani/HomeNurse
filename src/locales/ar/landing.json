@@ -72,6 +72,15 @@
         "supportedFormats": "الصيغ المدعومة: صور (JPG, PNG)، مستندات (PDF, DOC, DOCX)، جداول بيانات (XLS, XLSX)، ملفات نصية (TXT, RTF)",
         "tooltip": "يمكنك تحميل أي مستندات طبية أو وصفات طبية أو نتائج فحوصات ذات صلة"
       },
+      "paymentMethod": {
+        "label": "طريقة الدفع",
+        "whish": "ويش",
+        "cash": "نقداً عند الخدمة",
+        "placeholder": "الرجاء اختيار طريقة الدفع",
+        "whishDescription": "ادفع بأمان عبر ويش",
+        "cashDescription": "ادفع نقداً بعد الخدمة",
+        "cashOnlyQuickServices": "الدفع النقدي متاح فقط للخدمات السريعة"
+      },
       "optional": "اختياري",
       "serviceTypes": {
         "medicalGroup": "المستلزمات الطبية",

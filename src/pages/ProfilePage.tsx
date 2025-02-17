@@ -39,8 +39,8 @@ const { TabPane } = Tabs;
 
 // Commission rates for quick services (what nurse owes the company)
 const COMMISSION_RATES = {
-  quick_service: 3.0, // per service - commission owed by nurse to company
-  private_care_percentage: 0.1, // 10% commission for private care
+  quick_service: 3.0, // per service - commission varies based on payment type
+  private_care_percentage: 0.2, // 20% commission for private care
 };
 
 // Quick service types list - exact matches from database
@@ -68,6 +68,11 @@ const isQuickService = (type: string): boolean => {
   return isQuick;
 };
 
+// Add function to check if service is medical supply
+const isMedicalSupply = (type: string): boolean => {
+  return type === "medical_equipment";
+};
+
 interface WorkingHoursLog {
   id: number;
   request_id: number;
@@ -89,7 +94,8 @@ interface WorkingHoursLog {
       | "full_time_private_psychiatric"
       | "part_time_private_psychiatric"
     >;
-    price: number; // Add price field to interface
+    price: number;
+    payment_type: "cash" | "whish"; // Add payment_type to interface
   };
 }
 
@@ -296,6 +302,7 @@ export default function ProfilePage() {
     if (!nurseId || authorized !== true) return;
 
     try {
+      setLoading(true);
       // Fetch profile details
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
@@ -368,7 +375,8 @@ export default function ProfilePage() {
             is_paid,
             request:requests (
               service_type,
-              price
+              price,
+              payment_type
             )
           `
         )
@@ -389,64 +397,76 @@ export default function ProfilePage() {
       };
 
       // Process only unpaid services from working hours
-      typedHoursData
-        .filter((log) => !log.is_paid) // Only process unpaid services
-        .forEach((log) => {
-          // Add to total hours regardless of service type
-          statistics.totalHours += log.hours;
+      const unpaidLogs = typedHoursData.filter((log) => !log.is_paid);
+      for (const log of unpaidLogs) {
+        // Skip medical supply services
+        if (log.request.service_type.some(isMedicalSupply)) {
+          continue;
+        }
 
-          // Check if this is a quick service request (any of the service types is a quick service)
-          const isQuickServiceRequest = log.request.service_type.some((type) =>
+        // Add to total hours regardless of service type
+        statistics.totalHours += log.hours;
+
+        // Check if this is a quick service request (any of the service types is a quick service)
+        const isQuickServiceRequest = log.request.service_type.some((type) =>
+          isQuickService(type)
+        );
+
+        // For quick services, add commission only once per request
+        if (isQuickServiceRequest) {
+          // Calculate earnings based on payment type
+          const earnings =
+            log.request.payment_type === "cash"
+              ? COMMISSION_RATES.quick_service // Positive because nurse owes us for cash payments
+              : -COMMISSION_RATES.quick_service; // Negative because we owe nurse for whish payments
+
+          // Add the commission to the first quick service type found
+          const firstQuickServiceType = log.request.service_type.find((type) =>
             isQuickService(type)
-          );
+          )!;
+          if (!statistics.serviceTypeStats[firstQuickServiceType]) {
+            statistics.serviceTypeStats[firstQuickServiceType] = {
+              hours: log.hours,
+              earnings: 0,
+              count: 0,
+            };
+          } else {
+            statistics.serviceTypeStats[firstQuickServiceType].hours +=
+              log.hours;
+          }
+          statistics.serviceTypeStats[firstQuickServiceType].count += 1;
+          statistics.serviceTypeStats[firstQuickServiceType].earnings +=
+            earnings;
+          statistics.totalEarnings += earnings;
+        } else {
+          // Process private care services
+          log.request.service_type.forEach((serviceType) => {
+            // Skip medical supply services
+            if (isMedicalSupply(serviceType)) {
+              return;
+            }
 
-          // For quick services, add commission only once per request
-          if (isQuickServiceRequest) {
-            // Add one commission for the entire request
-            const earnings = COMMISSION_RATES.quick_service; // Positive because nurse owes us
-
-            // Add the commission to the first quick service type found
-            const firstQuickServiceType = log.request.service_type.find(
-              (type) => isQuickService(type)
-            )!;
-            if (!statistics.serviceTypeStats[firstQuickServiceType]) {
-              statistics.serviceTypeStats[firstQuickServiceType] = {
-                hours: log.hours, // Add hours here
+            if (!statistics.serviceTypeStats[serviceType]) {
+              statistics.serviceTypeStats[serviceType] = {
+                hours: 0,
                 earnings: 0,
                 count: 0,
               };
-            } else {
-              statistics.serviceTypeStats[firstQuickServiceType].hours +=
-                log.hours;
             }
-            statistics.serviceTypeStats[firstQuickServiceType].count += 1;
-            statistics.serviceTypeStats[firstQuickServiceType].earnings +=
-              earnings;
-            statistics.totalEarnings += earnings;
-          } else {
-            // Process private care services
-            log.request.service_type.forEach((serviceType) => {
-              if (!statistics.serviceTypeStats[serviceType]) {
-                statistics.serviceTypeStats[serviceType] = {
-                  hours: 0,
-                  earnings: 0,
-                  count: 0,
-                };
-              }
 
-              // For private care services, calculate based on request price
-              if (!isQuickService(serviceType) && log.request.price) {
-                const hourlyRate = log.request.price;
-                const nurseShare =
-                  hourlyRate * (1 - COMMISSION_RATES.private_care_percentage); // 90% of price
-                const earnings = -(nurseShare * log.hours); // Negative because we owe nurse
-                statistics.serviceTypeStats[serviceType].hours += log.hours;
-                statistics.serviceTypeStats[serviceType].earnings += earnings;
-                statistics.totalEarnings += earnings;
-              }
-            });
-          }
-        });
+            // For private care services, calculate based on request price
+            if (!isQuickService(serviceType) && log.request.price) {
+              const hourlyRate = log.request.price;
+              const nurseShare =
+                hourlyRate * (1 - COMMISSION_RATES.private_care_percentage); // 80% of price
+              const earnings = -nurseShare * log.hours; // Negative because we owe nurse
+              statistics.serviceTypeStats[serviceType].hours += log.hours;
+              statistics.serviceTypeStats[serviceType].earnings += earnings;
+              statistics.totalEarnings += earnings;
+            }
+          });
+        }
+      }
       setStats(statistics);
     } catch (error) {
       console.error("Error fetching profile data:", error);
@@ -837,35 +857,54 @@ export default function ProfilePage() {
         <Col xs={24} md={8}>
           <StatisticCard>
             <Statistic
-              title="Amount We Owe for Regular Care"
+              title="Amount We Owe"
               value={Math.abs(
-                Object.entries(stats.serviceTypeStats)
-                  .filter(([type]) => !isQuickService(type))
-                  .reduce((sum, [, data]) => sum + data.earnings, 0)
-              ).toFixed(2)}
+                Object.entries(stats.serviceTypeStats).reduce(
+                  (sum, [type, data]) => {
+                    // For quick services with whish payment, we owe them $3
+                    if (isQuickService(type) && data.earnings < 0) {
+                      return sum + Math.abs(data.earnings);
+                    }
+                    // For private care, we owe them their share
+                    if (!isQuickService(type) && data.earnings < 0) {
+                      return sum + Math.abs(data.earnings);
+                    }
+                    return sum;
+                  },
+                  0
+                )
+              )}
+              precision={2}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: "#f5222d" }}
+              valueStyle={{ color: "#52c41a" }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Rate: depends on the request's hourly rate (Owed to Nurse)
+              Total amount we owe to nurse
             </div>
           </StatisticCard>
         </Col>
         <Col xs={24} md={8}>
           <StatisticCard>
             <Statistic
-              title="Quick Service         Commission Owed by Nurse"
+              title="Amount They Owe"
               value={Math.abs(
-                Object.entries(stats.serviceTypeStats)
-                  .filter(([type]) => isQuickService(type))
-                  .reduce((sum, [, data]) => sum + data.earnings, 0)
-              ).toFixed(2)}
+                Object.entries(stats.serviceTypeStats).reduce(
+                  (sum, [type, data]) => {
+                    // For quick services with cash payment, they owe us $3
+                    if (isQuickService(type) && data.earnings > 0) {
+                      return sum + data.earnings;
+                    }
+                    return sum;
+                  },
+                  0
+                )
+              )}
+              precision={2}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: "#52c41a" }}
+              valueStyle={{ color: "#f5222d" }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Rate: ${COMMISSION_RATES.quick_service} per quick service (Owed to
-              Company)
+              Total amount owed by nurse
             </div>
           </StatisticCard>
         </Col>
@@ -873,27 +912,17 @@ export default function ProfilePage() {
           <StatisticCard>
             <Statistic
               title="Total Balance"
-              value={(
-                Math.abs(
-                  Object.entries(stats.serviceTypeStats)
-                    .filter(([type]) => !isQuickService(type))
-                    .reduce((sum, [, data]) => sum + data.earnings, 0)
-                ) -
-                Math.abs(
-                  Object.entries(stats.serviceTypeStats)
-                    .filter(([type]) => isQuickService(type))
-                    .reduce((sum, [, data]) => sum + data.earnings, 0)
-                )
-              ).toFixed(2)}
+              value={Math.abs(stats.totalEarnings)}
+              precision={2}
               prefix={<DollarOutlined />}
               valueStyle={{
-                color: "#f5222d",
-                fontSize: "24px",
+                color: stats.totalEarnings > 0 ? "#f5222d" : "#52c41a",
               }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              Final amount we owe the nurse (Private care earnings - Quick
-              service commission)
+              {stats.totalEarnings > 0
+                ? "Total amount owed by nurse"
+                : "Total amount we owe nurse"}
             </div>
           </StatisticCard>
         </Col>
@@ -1059,6 +1088,16 @@ export default function ProfilePage() {
                   key: "hours",
                   render: (hours) => `${hours} hrs`,
                   width: 100,
+                },
+                {
+                  title: "Payment Type",
+                  dataIndex: ["request", "payment_type"],
+                  render: (type: "cash" | "whish") => (
+                    <Tag color={type === "cash" ? "green" : "blue"}>
+                      {type.toUpperCase()}
+                    </Tag>
+                  ),
+                  width: 120,
                 },
                 {
                   title: "Notes",

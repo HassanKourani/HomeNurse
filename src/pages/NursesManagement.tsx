@@ -24,6 +24,24 @@ import {
 
 const { Title, Text } = Typography;
 
+// Add helper function to check if service is medical supply
+const isMedicalSupply = (type: string): boolean => {
+  return type === "medical_equipment";
+};
+
+// Add helper function to check if service is quick service
+const isQuickService = (type: string): boolean => {
+  const quickServices = [
+    "blood_test",
+    "im",
+    "iv",
+    "hemo_vs",
+    "patient_care",
+    "other",
+  ];
+  return quickServices.includes(type);
+};
+
 interface WorkingHoursLog {
   id: number;
   hours: number;
@@ -40,8 +58,10 @@ interface WorkingHoursLog {
       | "part_time_private_normal"
       | "full_time_private_psychiatric"
       | "part_time_private_psychiatric"
+      | "medical_equipment"
     >;
     price: number;
+    payment_type: "cash" | "whish";
   };
 }
 
@@ -285,7 +305,8 @@ export default function NursesManagement() {
             is_paid,
             request:requests (
               service_type,
-              price
+              price,
+              payment_type
             )
           )
         `
@@ -332,25 +353,25 @@ export default function NursesManagement() {
 
           workingHours.forEach((log: WorkingHoursLog) => {
             if (!log.is_paid && log.request) {
-              const isQuickServiceRequest = log.request.service_type.some(
-                (type) =>
-                  [
-                    "blood_test",
-                    "im",
-                    "iv",
-                    "hemo_vs",
-                    "patient_care",
-                    "other",
-                  ].includes(type)
-              );
+              // Skip medical supply services
+              if (log.request.service_type.some(isMedicalSupply)) {
+                return;
+              }
+
+              const isQuickServiceRequest =
+                log.request.service_type.some(isQuickService);
 
               if (isQuickServiceRequest) {
-                // Quick service commission owed to company
-                amountTheyOwe += 3.0; // Using the fixed commission rate
+                // Quick service commission calculation based on payment type
+                if (log.request.payment_type === "cash") {
+                  amountTheyOwe += 3.0; // Nurse owes us for cash payments
+                } else {
+                  amountWeOwe += 3.0; // We owe nurse for whish payments
+                }
               } else if (log.request.price) {
-                // Private care payment owed to nurse
+                // Private care payment calculation
                 const hourlyRate = log.request.price;
-                const nurseShare = hourlyRate * 0.9; // 90% of price
+                const nurseShare = hourlyRate * 0.8; // 80% of price (20% commission)
                 amountWeOwe += nurseShare * log.hours;
               }
             }

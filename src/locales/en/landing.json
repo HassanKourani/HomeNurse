@@ -72,6 +72,15 @@
         "supportedFormats": "Supported formats: Images (JPG, PNG), Documents (PDF, DOC, DOCX), Spreadsheets (XLS, XLSX), Text files (TXT, RTF)",
         "tooltip": "You can upload any relevant medical documents, prescriptions, or test results"
       },
+      "paymentMethod": {
+        "label": "Payment Method",
+        "whish": "Whish",
+        "cash": "Cash on Service",
+        "placeholder": "Please select a payment method",
+        "whishDescription": "Pay securely with Whish",
+        "cashDescription": "Pay in cash after service",
+        "cashOnlyQuickServices": "Cash payment is only available for quick services"
+      },
       "optional": "Optional",
       "serviceTypes": {
         "medicalGroup": "Medical Supply",
