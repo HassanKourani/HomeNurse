@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   Typography,
-  Card,
   Row,
   Col,
   Statistic,
@@ -15,7 +14,6 @@ import {
   Modal,
   Input,
 } from "antd";
-import { motion } from "framer-motion";
 import styled from "styled-components";
 import {
   ClockCircleOutlined,
@@ -33,175 +31,39 @@ import { useAuth } from "../utils/AuthContext";
 import supabase from "../utils/supabase";
 import dayjs from "dayjs";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
+import {
+  WorkingHoursLog,
+  NurseProfile,
+  NurseRequest,
+  QUICK_SERVICE_TYPES,
+  isMedicalSupply,
+  ServiceType,
+  QuickServiceType,
+  calculateNursePayments,
+} from "../utils/nurseUtils";
+import {
+  PageContainer,
+  BackButton,
+  StyledCard,
+} from "./styles/ProfilePage.styles";
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
-
-// Commission rates for quick services (what nurse owes the company)
-const COMMISSION_RATES = {
-  quick_service: 3.0, // per service - commission varies based on payment type
-  private_care_percentage: 0.2, // 20% commission for private care
-};
-
-// Quick service types list - exact matches from database
-const QUICK_SERVICE_TYPES = [
-  "blood_test",
-  "im",
-  "iv",
-  "hemo_vs",
-  "patient_care",
-  "other",
-];
-
-// Service type categories for classification
-const isQuickService = (type: string): boolean => {
-  // List of known quick service types
-  const quickServices = [
-    "blood_test",
-    "im",
-    "iv",
-    "hemo_vs",
-    "patient_care",
-    "other",
-  ];
-  const isQuick = quickServices.includes(type);
-  return isQuick;
-};
-
-// Add function to check if service is medical supply
-const isMedicalSupply = (type: string): boolean => {
-  return type === "medical_equipment";
-};
-
-interface WorkingHoursLog {
-  id: number;
-  request_id: number;
-  hours: number;
-  work_date: string;
-  notes: string;
-  created_at: string;
-  is_paid: boolean;
-  request: {
-    service_type: Array<
-      | "blood_test"
-      | "im"
-      | "iv"
-      | "patient_care"
-      | "hemo_vs"
-      | "other"
-      | "full_time_private_normal"
-      | "part_time_private_normal"
-      | "full_time_private_psychiatric"
-      | "part_time_private_psychiatric"
-    >;
-    price: number;
-    payment_type: "cash" | "whish"; // Add payment_type to interface
-  };
-}
 
 interface ProfileStats {
   totalHours: number;
   totalEarnings: number;
   serviceTypeStats: {
-    [key: string]: {
+    [key in ServiceType]?: {
       hours: number;
       earnings: number;
       count: number;
     };
   };
+  amountWeOwe: number;
+  amountTheyOwe: number;
+  netAmount: number;
 }
-
-interface Profile {
-  id: string;
-  full_name: string;
-  phone_number: string;
-  role: string;
-  created_at: string;
-  email: string;
-  normal_care_hourly_rate: number;
-  psychiatric_care_hourly_rate: number;
-  rates_updated_at: string;
-}
-
-// Add this interface for request data
-interface NurseRequest {
-  id: number;
-  service_type: Array<
-    | "blood_test"
-    | "im"
-    | "iv"
-    | "patient_care"
-    | "hemo_vs"
-    | "other"
-    | "full_time_private_normal"
-    | "part_time_private_normal"
-    | "full_time_private_psychiatric"
-    | "part_time_private_psychiatric"
-  >;
-  details: string;
-  status: string;
-  created_at: string;
-  price: number;
-  patient: {
-    full_name: string;
-    phone_number: string;
-    location: string;
-  };
-}
-
-const PageContainer = styled(motion.div)`
-  padding: 16px;
-  margin: 0 auto;
-  background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
-  min-height: 100vh;
-  position: relative;
-  padding-top: 24px;
-
-  @media (min-width: 768px) {
-    padding: 24px;
-    padding-top: 72px;
-  }
-`;
-
-const BackButton = styled(Button)`
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 10;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  border: 1px solid #e6e6e6;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-  &:hover {
-    background: white;
-    border-color: #1890ff;
-  }
-
-  @media (min-width: 768px) {
-    top: 24px;
-    left: 24px;
-  }
-`;
-
-const StyledCard = styled(Card)`
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  margin-bottom: 24px;
-
-  .ant-card-head {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-
-  .ant-card-body {
-    padding: 24px;
-  }
-`;
 
 const ProfileHeader = styled.div`
   display: flex;
@@ -276,13 +138,16 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const { nurseId } = useParams();
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<NurseProfile | null>(null);
   const [workingHours, setWorkingHours] = useState<WorkingHoursLog[]>([]);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [stats, setStats] = useState<ProfileStats>({
     totalHours: 0,
     totalEarnings: 0,
     serviceTypeStats: {},
+    amountWeOwe: 0,
+    amountTheyOwe: 0,
+    netAmount: 0,
   });
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const navigate = useNavigate();
@@ -297,7 +162,6 @@ export default function ProfilePage() {
     null
   );
 
-  // Define fetchProfileData first
   const fetchProfileData = async () => {
     if (!nurseId || authorized !== true) return;
 
@@ -343,19 +207,7 @@ export default function ProfilePage() {
         .map((item) => {
           const request = item.request as unknown as NurseRequest;
           if (!request) return null;
-          return {
-            id: request.id,
-            service_type: request.service_type,
-            details: request.details,
-            status: request.status,
-            created_at: request.created_at,
-            price: request.price,
-            patient: {
-              full_name: request.patient.full_name,
-              phone_number: request.patient.phone_number,
-              location: request.patient.location,
-            },
-          };
+          return request;
         })
         .filter((item): item is NurseRequest => item !== null);
 
@@ -385,89 +237,61 @@ export default function ProfilePage() {
 
       if (hoursError) throw hoursError;
 
-      // Double type assertion to safely convert the response
       const typedHoursData = (hoursData || []) as unknown as WorkingHoursLog[];
       setWorkingHours(typedHoursData);
 
-      // Calculate statistics for unpaid services only
+      // Calculate statistics
       const statistics: ProfileStats = {
         totalHours: 0,
         totalEarnings: 0,
         serviceTypeStats: {},
+        amountWeOwe: 0,
+        amountTheyOwe: 0,
+        netAmount: 0,
       };
 
       // Process only unpaid services from working hours
       const unpaidLogs = typedHoursData.filter((log) => !log.is_paid);
-      for (const log of unpaidLogs) {
-        // Skip medical supply services
+
+      // Calculate total hours (excluding medical supply services)
+      statistics.totalHours = unpaidLogs.reduce((total, log) => {
         if (log.request.service_type.some(isMedicalSupply)) {
-          continue;
+          return total;
+        }
+        return total + log.hours;
+      }, 0);
+
+      // Calculate payments using the utility function
+      const { amountWeOwe, amountTheyOwe, netAmount } =
+        calculateNursePayments(unpaidLogs);
+      statistics.totalEarnings = netAmount;
+
+      // Calculate service type statistics
+      unpaidLogs.forEach((log) => {
+        if (log.request.service_type.some(isMedicalSupply)) {
+          return;
         }
 
-        // Add to total hours regardless of service type
-        statistics.totalHours += log.hours;
-
-        // Check if this is a quick service request (any of the service types is a quick service)
-        const isQuickServiceRequest = log.request.service_type.some((type) =>
-          isQuickService(type)
-        );
-
-        // For quick services, add commission only once per request
-        if (isQuickServiceRequest) {
-          // Calculate earnings based on payment type
-          const earnings =
-            log.request.payment_type === "cash"
-              ? COMMISSION_RATES.quick_service // Positive because nurse owes us for cash payments
-              : -COMMISSION_RATES.quick_service; // Negative because we owe nurse for whish payments
-
-          // Add the commission to the first quick service type found
-          const firstQuickServiceType = log.request.service_type.find((type) =>
-            isQuickService(type)
-          )!;
-          if (!statistics.serviceTypeStats[firstQuickServiceType]) {
-            statistics.serviceTypeStats[firstQuickServiceType] = {
-              hours: log.hours,
+        log.request.service_type.forEach((serviceType) => {
+          if (!statistics.serviceTypeStats[serviceType]) {
+            statistics.serviceTypeStats[serviceType] = {
+              hours: 0,
               earnings: 0,
               count: 0,
             };
-          } else {
-            statistics.serviceTypeStats[firstQuickServiceType].hours +=
-              log.hours;
           }
-          statistics.serviceTypeStats[firstQuickServiceType].count += 1;
-          statistics.serviceTypeStats[firstQuickServiceType].earnings +=
-            earnings;
-          statistics.totalEarnings += earnings;
-        } else {
-          // Process private care services
-          log.request.service_type.forEach((serviceType) => {
-            // Skip medical supply services
-            if (isMedicalSupply(serviceType)) {
-              return;
-            }
 
-            if (!statistics.serviceTypeStats[serviceType]) {
-              statistics.serviceTypeStats[serviceType] = {
-                hours: 0,
-                earnings: 0,
-                count: 0,
-              };
-            }
+          statistics.serviceTypeStats[serviceType]!.hours += log.hours;
+          statistics.serviceTypeStats[serviceType]!.count += 1;
+        });
+      });
 
-            // For private care services, calculate based on request price
-            if (!isQuickService(serviceType) && log.request.price) {
-              const hourlyRate = log.request.price;
-              const nurseShare =
-                hourlyRate * (1 - COMMISSION_RATES.private_care_percentage); // 80% of price
-              const earnings = -nurseShare * log.hours; // Negative because we owe nurse
-              statistics.serviceTypeStats[serviceType].hours += log.hours;
-              statistics.serviceTypeStats[serviceType].earnings += earnings;
-              statistics.totalEarnings += earnings;
-            }
-          });
-        }
-      }
-      setStats(statistics);
+      setStats({
+        ...statistics,
+        amountWeOwe,
+        amountTheyOwe,
+        netAmount,
+      });
     } catch (error) {
       console.error("Error fetching profile data:", error);
       message.error("Error loading profile data");
@@ -858,22 +682,7 @@ export default function ProfilePage() {
           <StatisticCard>
             <Statistic
               title="Amount We Owe"
-              value={Math.abs(
-                Object.entries(stats.serviceTypeStats).reduce(
-                  (sum, [type, data]) => {
-                    // For quick services with whish payment, we owe them $3
-                    if (isQuickService(type) && data.earnings < 0) {
-                      return sum + Math.abs(data.earnings);
-                    }
-                    // For private care, we owe them their share
-                    if (!isQuickService(type) && data.earnings < 0) {
-                      return sum + Math.abs(data.earnings);
-                    }
-                    return sum;
-                  },
-                  0
-                )
-              )}
+              value={Math.abs(stats.amountWeOwe)}
               precision={2}
               prefix={<DollarOutlined />}
               valueStyle={{ color: "#52c41a" }}
@@ -887,18 +696,7 @@ export default function ProfilePage() {
           <StatisticCard>
             <Statistic
               title="Amount They Owe"
-              value={Math.abs(
-                Object.entries(stats.serviceTypeStats).reduce(
-                  (sum, [type, data]) => {
-                    // For quick services with cash payment, they owe us $3
-                    if (isQuickService(type) && data.earnings > 0) {
-                      return sum + data.earnings;
-                    }
-                    return sum;
-                  },
-                  0
-                )
-              )}
+              value={Math.abs(stats.amountTheyOwe)}
               precision={2}
               prefix={<DollarOutlined />}
               valueStyle={{ color: "#f5222d" }}
@@ -912,15 +710,15 @@ export default function ProfilePage() {
           <StatisticCard>
             <Statistic
               title="Total Balance"
-              value={Math.abs(stats.totalEarnings)}
+              value={Math.abs(stats.netAmount)}
               precision={2}
               prefix={<DollarOutlined />}
               valueStyle={{
-                color: stats.totalEarnings > 0 ? "#f5222d" : "#52c41a",
+                color: stats.netAmount > 0 ? "#f5222d" : "#52c41a",
               }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-              {stats.totalEarnings > 0
+              {stats.netAmount > 0
                 ? "Total amount owed by nurse"
                 : "Total amount we owe nurse"}
             </div>
@@ -947,7 +745,9 @@ export default function ProfilePage() {
                         <Tag
                           key={`${type}-${index}`}
                           color={
-                            QUICK_SERVICE_TYPES.includes(type)
+                            QUICK_SERVICE_TYPES.includes(
+                              type as QuickServiceType
+                            )
                               ? "blue"
                               : type.includes("psychiatric")
                               ? "purple"
@@ -1061,7 +861,9 @@ export default function ProfilePage() {
                         <Tag
                           key={`${type}-${index}`}
                           color={
-                            QUICK_SERVICE_TYPES.includes(type)
+                            QUICK_SERVICE_TYPES.includes(
+                              type as QuickServiceType
+                            )
                               ? "blue"
                               : type.includes("psychiatric")
                               ? "purple"

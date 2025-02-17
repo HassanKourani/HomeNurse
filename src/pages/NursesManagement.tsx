@@ -1,18 +1,14 @@
 import { useEffect, useState } from "react";
 import {
-  Table,
   Typography,
   Tag,
   Button,
   message,
   Space,
-  Card,
   Select,
   Row,
   Col,
 } from "antd";
-import { motion } from "framer-motion";
-import styled from "styled-components";
 import supabase from "../utils/supabase";
 import { useAuth } from "../utils/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -21,264 +17,22 @@ import {
   NurseFilters,
   NurseFilterValues,
 } from "../components/Filters/NurseFilters";
+import {
+  NurseProfile,
+  ROLE_COLORS,
+  ROLE_LABELS,
+  calculateNursePayments,
+} from "../utils/nurseUtils";
+import {
+  PageContainer,
+  HeaderSection,
+  StyledTable,
+  MobileCardView,
+  StyledCard,
+  ActionButton,
+} from "./styles/NursesManagement.styles";
 
 const { Title, Text } = Typography;
-
-// Add helper function to check if service is medical supply
-const isMedicalSupply = (type: string): boolean => {
-  return type === "medical_equipment";
-};
-
-// Add helper function to check if service is quick service
-const isQuickService = (type: string): boolean => {
-  const quickServices = [
-    "blood_test",
-    "im",
-    "iv",
-    "hemo_vs",
-    "patient_care",
-    "other",
-  ];
-  return quickServices.includes(type);
-};
-
-interface WorkingHoursLog {
-  id: number;
-  hours: number;
-  is_paid: boolean;
-  request: {
-    service_type: Array<
-      | "blood_test"
-      | "im"
-      | "iv"
-      | "patient_care"
-      | "hemo_vs"
-      | "other"
-      | "full_time_private_normal"
-      | "part_time_private_normal"
-      | "full_time_private_psychiatric"
-      | "part_time_private_psychiatric"
-      | "medical_equipment"
-    >;
-    price: number;
-    payment_type: "cash" | "whish";
-  };
-}
-
-type NurseProfile = {
-  id: string;
-  full_name: string;
-  email: string;
-  phone_number: string;
-  role: "registered" | "physiotherapist" | "general_doctor" | "superAdmin";
-  created_at: string;
-  is_approved: boolean;
-  is_blocked: boolean;
-  amountWeOwe: number;
-  amountTheyOwe: number;
-  netAmount: number;
-  nurse_working_hours_log: WorkingHoursLog[];
-};
-
-const PageContainer = styled(motion.div)`
-  padding: 24px;
-  margin: 0 auto;
-  background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
-  min-height: 100vh;
-  padding-top: 72px;
-`;
-
-const HeaderSection = styled.div`
-  margin-bottom: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-
-  .title-section {
-    h2 {
-      margin: 0;
-      color: #1a3d7c;
-    }
-
-    p {
-      margin: 8px 0 0;
-      color: #666;
-      font-size: 16px;
-    }
-  }
-
-  .actions-section {
-    display: flex;
-    gap: 12px;
-  }
-
-  @media (max-width: 576px) {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
-
-    .actions-section {
-      justify-content: center;
-    }
-  }
-`;
-
-const StyledTable = styled(Table<NurseProfile>)`
-  .ant-table {
-    background: transparent;
-    overflow-x: auto;
-  }
-
-  .ant-table-wrapper {
-    background: white;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  }
-
-  .ant-table-thead > tr > th {
-    background: rgba(24, 144, 255, 0.05);
-    color: #1a3d7c;
-    font-weight: 600;
-    border-bottom: 2px solid #f0f0f0;
-    padding: 16px;
-    white-space: nowrap;
-  }
-
-  .ant-table-tbody > tr > td {
-    padding: 16px;
-    border-bottom: 1px solid #f0f0f0;
-  }
-
-  .ant-table-tbody > tr:hover > td {
-    background: rgba(24, 144, 255, 0.02);
-  }
-
-  .ant-pagination {
-    margin: 16px 0;
-  }
-
-  @media (max-width: 768px) {
-    display: none;
-  }
-`;
-
-const MobileCardView = styled.div`
-  display: none;
-
-  @media (max-width: 768px) {
-    display: block;
-  }
-`;
-
-const StyledCard = styled(Card)`
-  margin-bottom: 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-
-  .ant-card-body {
-    padding: 16px;
-  }
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-
-    h3 {
-      margin: 0;
-      color: #1a3d7c;
-      font-weight: 600;
-    }
-  }
-
-  .card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .card-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #f0f0f0;
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    .label {
-      color: #666;
-      font-size: 14px;
-    }
-
-    .value {
-      color: #1a3d7c;
-      font-weight: 500;
-    }
-  }
-
-  .card-actions {
-    margin-top: 16px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-  }
-`;
-
-const ActionButton = styled(Button)`
-  height: 40px;
-  padding: 0 20px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-
-  &.ant-btn-primary {
-    background: linear-gradient(120deg, #1890ff, #096dd9);
-    border: none;
-    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.25);
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
-    }
-  }
-
-  &.ant-btn-default {
-    border: 1px solid #d9d9d9;
-
-    &:hover {
-      border-color: #1890ff;
-      color: #1890ff;
-    }
-  }
-
-  @media (max-width: 576px) {
-    flex: 1;
-    justify-content: center;
-  }
-`;
-
-const roleColors = {
-  registered: "blue",
-  physiotherapist: "red",
-  general_doctor: "magenta",
-  superAdmin: "gold",
-};
-
-const roleLabels = {
-  registered: "Registered Nurse (RN)",
-  physiotherapist: "Physiotherapist",
-  general_doctor: "General Doctor",
-  superAdmin: "Super Admin",
-};
 
 export default function NursesManagement() {
   const [nurses, setNurses] = useState<NurseProfile[]>([]);
@@ -317,8 +71,8 @@ export default function NursesManagement() {
           "general_doctor",
           "superAdmin",
         ])
-        .not("id", "eq", user?.id)
-        .not("email", "eq", "hkourani36@gmail.com")
+        // .not("id", "eq", user?.id)
+        // .not("email", "eq", "hkourani36@gmail.com")
         .order("created_at", { ascending: false });
 
       // Apply filters
@@ -340,51 +94,18 @@ export default function NursesManagement() {
       if (error) throw error;
 
       // Process the data to calculate earnings
-      const processedData = (data || []).map(
-        (
-          nurse: Omit<
-            NurseProfile,
-            "amountWeOwe" | "amountTheyOwe" | "netAmount"
-          >
-        ) => {
-          const workingHours = nurse.nurse_working_hours_log || [];
-          let amountWeOwe = 0;
-          let amountTheyOwe = 0;
+      const processedData = (data || []).map((nurse) => {
+        const workingHours = nurse.nurse_working_hours_log || [];
+        const { amountWeOwe, amountTheyOwe, netAmount } =
+          calculateNursePayments(workingHours);
 
-          workingHours.forEach((log: WorkingHoursLog) => {
-            if (!log.is_paid && log.request) {
-              // Skip medical supply services
-              if (log.request.service_type.some(isMedicalSupply)) {
-                return;
-              }
-
-              const isQuickServiceRequest =
-                log.request.service_type.some(isQuickService);
-
-              if (isQuickServiceRequest) {
-                // Quick service commission calculation based on payment type
-                if (log.request.payment_type === "cash") {
-                  amountTheyOwe += 3.0; // Nurse owes us for cash payments
-                } else {
-                  amountWeOwe += 3.0; // We owe nurse for whish payments
-                }
-              } else if (log.request.price) {
-                // Private care payment calculation
-                const hourlyRate = log.request.price;
-                const nurseShare = hourlyRate * 0.8; // 80% of price (20% commission)
-                amountWeOwe += nurseShare * log.hours;
-              }
-            }
-          });
-
-          return {
-            ...nurse,
-            amountWeOwe,
-            amountTheyOwe,
-            netAmount: amountWeOwe - amountTheyOwe,
-          };
-        }
-      );
+        return {
+          ...nurse,
+          amountWeOwe,
+          amountTheyOwe,
+          netAmount,
+        };
+      });
 
       setNurses(processedData);
     } catch (error) {
@@ -537,10 +258,10 @@ export default function NursesManagement() {
       dataIndex: "role",
       key: "role",
       width: 500,
-      render: (role: keyof typeof roleColors, record: NurseProfile) => (
+      render: (role: keyof typeof ROLE_COLORS, record: NurseProfile) => (
         <Row justify="space-between">
           <Col span={8}>
-            <Tag color={roleColors[role]}>{roleLabels[role]}</Tag>
+            <Tag color={ROLE_COLORS[role]}>{ROLE_LABELS[role]}</Tag>
           </Col>
 
           <Col span={16} style={{ textAlign: "right" }}>
@@ -664,7 +385,7 @@ export default function NursesManagement() {
     <StyledCard key={nurse.id}>
       <div className="card-header">
         <h3>{nurse.full_name}</h3>
-        <Tag color={roleColors[nurse.role]}>{roleLabels[nurse.role]}</Tag>
+        <Tag color={ROLE_COLORS[nurse.role]}>{ROLE_LABELS[nurse.role]}</Tag>
       </div>
       <div className="card-content">
         <div className="card-item">
