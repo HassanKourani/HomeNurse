@@ -71,8 +71,8 @@ export default function NursesManagement() {
           "general_doctor",
           "superAdmin",
         ])
-        // .not("id", "eq", user?.id)
-        // .not("email", "eq", "hkourani36@gmail.com")
+        .not("id", "eq", user?.id)
+        .not("email", "eq", "hkourani36@gmail.com")
         .order("created_at", { ascending: false });
 
       // Apply filters
