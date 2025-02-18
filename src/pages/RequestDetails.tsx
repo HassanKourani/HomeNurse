@@ -37,12 +37,7 @@ import dayjs from "dayjs";
 import { useNotification } from "../utils/NotificationProvider";
 import { sendNurseAssignmentRequest } from "../utils/emailUtils";
 import { Area } from "../components/Landing/LandingForm";
-import {
-  ServiceType,
-  RequestStatus,
-  statusColors,
-  Patient,
-} from "../types/requests";
+import { ServiceType, RequestStatus, Patient } from "../types/requests";
 
 const { Title, Text } = Typography;
 
@@ -55,6 +50,7 @@ type RequestDetails = {
   price: number | null;
   visit_date: string | null;
   image_id: string | null;
+  payment_type?: string;
   assigned_nurses: Array<{
     id: string;
     full_name: string;
@@ -99,10 +95,9 @@ type NurseData = {
 
 const PageContainer = styled(motion.div)`
   padding: 24px;
-  margin: 0 auto;
+  margin: auto;
   background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
   min-height: 100vh;
-  padding-top: 72px;
 `;
 
 const HeaderSection = styled.div`
@@ -558,7 +553,8 @@ export default function RequestDetails() {
               phone_number,
               location,
               area
-            )
+            ),
+            payment_type
           `
           )
           .eq("id", parseInt(id))
@@ -1551,9 +1547,23 @@ export default function RequestDetails() {
               </div>
             </Descriptions.Item>
             <Descriptions.Item label="Status">
-              <Tag color={statusColors[request.status]}>
-                {request.status.charAt(0).toUpperCase() +
-                  request.status.slice(1)}
+              <Tag
+                color={
+                  request?.status === "completed"
+                    ? "success"
+                    : request?.status === "accepted"
+                    ? "processing"
+                    : request?.status === "cancelled"
+                    ? "error"
+                    : "warning"
+                }
+              >
+                {request?.status?.toUpperCase()}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Payment Method">
+              <Tag color={request?.payment_type === "cash" ? "green" : "blue"}>
+                {request?.payment_type?.toUpperCase() || "N/A"}
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Patient Name">
