@@ -172,7 +172,7 @@ const Slogan = styled.p`
 const SupportContact = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
   margin-top: 2rem;
 
   @media (max-width: 768px) {
@@ -1250,7 +1250,7 @@ export default function LandingForm() {
                 </div>
                 <div className="contact-item">
                   <MailOutlined />
-                  <a href="mailto:info@carecomfortapp.com" dir="ltr">
+                  <a href="mailto:carecomfortapp@gmail.com" dir="ltr">
                     {t("support.email")}
                   </a>
                 </div>
