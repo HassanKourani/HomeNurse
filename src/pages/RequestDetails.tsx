@@ -1777,7 +1777,7 @@ export default function RequestDetails() {
                       }}
                     >
                       <Text type="warning">
-                        Note: A commission fee of $4 will be deducted from the
+                        Note: A commission fee of $3 will be deducted from the
                         payment for this quick service request.
                       </Text>
                     </div>

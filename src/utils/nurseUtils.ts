@@ -107,11 +107,13 @@ export interface NurseRequest {
 export const calculateNursePayments = (workingHours: WorkingHoursLog[]) => {
   let amountWeOwe = 0;
   let amountTheyOwe = 0;
+  let medicalSupplyAmount = 0;
 
   workingHours.forEach((log) => {
     if (!log.is_paid && log.request) {
       // Skip medical supply services
       if (log.request.service_type.some(isMedicalSupply)) {
+        medicalSupplyAmount += log.hours * log.request.price; // calculate the total amount of medical supply services
         return;
       }
 
@@ -139,5 +141,6 @@ export const calculateNursePayments = (workingHours: WorkingHoursLog[]) => {
     amountWeOwe,
     amountTheyOwe,
     netAmount: amountWeOwe - amountTheyOwe,
+    medicalSupplyAmount,
   };
 };
