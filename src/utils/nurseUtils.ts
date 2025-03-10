@@ -67,6 +67,7 @@ export interface WorkingHoursLog {
     service_type: ServiceType[];
     price: number;
     payment_type: PaymentType;
+    status: string;
   };
 }
 

@@ -228,7 +228,8 @@ export default function ProfilePage() {
             request:requests (
               service_type,
               price,
-              payment_type
+              payment_type,
+              status
             )
           `
         )
@@ -237,7 +238,13 @@ export default function ProfilePage() {
 
       if (hoursError) throw hoursError;
 
-      const typedHoursData = (hoursData || []) as unknown as WorkingHoursLog[];
+      let typedHoursData = (hoursData || []) as unknown as WorkingHoursLog[];
+
+      // skip cancelled requests
+      typedHoursData = typedHoursData.filter(
+        (log) => log.request.status !== "cancelled"
+      );
+
       setWorkingHours(typedHoursData);
 
       // Calculate statistics
@@ -681,7 +688,7 @@ export default function ProfilePage() {
         <Col xs={24} md={8}>
           <StatisticCard>
             <Statistic
-              title="Amount We Owe"
+              title="Amount Company Owe The Nurse"
               value={Math.abs(stats.amountWeOwe)}
               precision={2}
               prefix={<DollarOutlined />}
@@ -695,7 +702,7 @@ export default function ProfilePage() {
         <Col xs={24} md={8}>
           <StatisticCard>
             <Statistic
-              title="Amount They Owe"
+              title="Amount Nurse Owe The Company"
               value={Math.abs(stats.amountTheyOwe)}
               precision={2}
               prefix={<DollarOutlined />}
@@ -710,7 +717,7 @@ export default function ProfilePage() {
           <StatisticCard>
             <Statistic
               title="Total Balance"
-              value={Math.abs(stats.netAmount)}
+              value={stats.netAmount}
               precision={2}
               prefix={<DollarOutlined />}
               valueStyle={{

@@ -281,7 +281,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               name="area"
               rules={[{ required: true, message: "Please select your area!" }]}
             >
-              <Select placeholder="Select your area">
+              <Select virtual={false} placeholder="Select your area">
                 <Select.Option value="beirut">Beirut</Select.Option>
                 <Select.Option value="mount_lebanon">
                   Mount Lebanon
@@ -301,7 +301,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               name="role"
               rules={[{ required: true, message: "Please select nurse type!" }]}
             >
-              <Select placeholder="Select your nurse type">
+              <Select virtual={false} placeholder="Select your nurse type">
                 <Select.Option value="registered">
                   Registered Nurse (RN)
                 </Select.Option>

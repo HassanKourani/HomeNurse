@@ -848,7 +848,11 @@ export default function RequestDetails() {
       let nurseToAdd: NurseData = nurseData as NurseData;
 
       // If it's a quick service, automatically log one hour
-      if (request && isQuickService(request.service_type[0])) {
+      if (
+        request &&
+        (isQuickService(request.service_type[0]) ||
+          isDoctorVisitService(request.service_type[0]))
+      ) {
         try {
           await logOneHourForNurse(user.id, parseInt(id));
           nurseToAdd = {
@@ -1128,7 +1132,11 @@ export default function RequestDetails() {
         let finalNurseData = nurseToAdd;
 
         // If it's a quick service, automatically log one hour
-        if (request && isQuickService(request.service_type[0])) {
+        if (
+          request &&
+          (isQuickService(request.service_type[0]) ||
+            isDoctorVisitService(request.service_type[0]))
+        ) {
           try {
             await logOneHourForNurse(nurseId, parseInt(id));
             finalNurseData = {

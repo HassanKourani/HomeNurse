@@ -960,6 +960,7 @@ export default function LandingForm() {
           ]}
         >
           <Select
+            virtual={false}
             mode="multiple"
             showSearch={false}
             placeholder={t("form.fields.serviceType.placeholder")}
